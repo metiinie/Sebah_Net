@@ -1,21 +1,36 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Film, Music, Mail, Lock, User } from 'lucide-react';
+import { Film, Music, Mail, Lock } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { usePageNavigation } from '../hooks/usePageNavigation';
+import { useLoading } from '../hooks/useLoading';
+import { handleError } from '../lib/errorHandler';
 import toast from 'react-hot-toast';
 
 export const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
+  const { loading, startLoading, stopLoading } = useLoading(false);
   const { signIn, signUp } = useAuth();
-  const navigate = useNavigate();
+  const { goToChoice } = usePageNavigation();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+    if (!email || !password) {
+      toast.error('Email and password are required');
+      return;
+    }
+    const emailRegex = /[^\s@]+@[^\s@]+\.[^\s@]+/;
+    if (!emailRegex.test(email)) {
+      toast.error('Please enter a valid email');
+      return;
+    }
+    if (password.length < 6) {
+      toast.error('Password must be at least 6 characters');
+      return;
+    }
+    startLoading();
 
     try {
       if (isLogin) {
@@ -23,11 +38,11 @@ export const Auth = () => {
       } else {
         await signUp(email, password);
       }
-      navigate('/choice');
-    } catch (error: any) {
-      toast.error(error.message || 'An error occurred');
+      goToChoice();
+    } catch (error: unknown) {
+      handleError(error, 'Authentication');
     } finally {
-      setLoading(false);
+      stopLoading();
     }
   };
 
@@ -46,7 +61,7 @@ export const Auth = () => {
             className="inline-flex items-center gap-3 mb-4"
           >
             <Film className="w-10 h-10 text-cyan-400" />
-            <h1 className="text-4xl font-bold text-white">StreamChoice</h1>
+            <h1 className="text-4xl font-bold text-white">Combine Site</h1>
             <Music className="w-10 h-10 text-pink-400" />
           </motion.div>
           <p className="text-slate-400 text-lg">Your gateway to entertainment</p>

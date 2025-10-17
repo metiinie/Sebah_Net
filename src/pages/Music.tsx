@@ -1,80 +1,138 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Search, Play, Pause, SkipForward, SkipBack, Volume2, ArrowLeft, Music as MusicIcon } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import { supabase, Music as MusicType } from '../lib/supabase';
-import toast from 'react-hot-toast';
+import { ArrowLeft, Music as MusicIcon } from 'lucide-react';
+import { Music as MusicType } from '../lib/supabase';
+import { dataService } from '../lib/dataService';
+import { Spinner } from '../components/Spinner';
+import { SmartMediaPlayer } from '../components/SmartMediaPlayer';
+import { UnifiedSearch } from '../components/UnifiedSearch';
+import { GridMusicList } from '../components/GridMusicList';
+import { usePageNavigation } from '../hooks/usePageNavigation';
+import { useLoading } from '../hooks/useLoading';
+import { SearchFilters } from '../lib/searchService';
 
 export const Music = () => {
-  const navigate = useNavigate();
+  const { goToChoice } = usePageNavigation();
+  const { loading, stopLoading } = useLoading(true);
   const audioRef = useRef<HTMLAudioElement>(null);
   const [tracks, setTracks] = useState<MusicType[]>([]);
   const [filteredTracks, setFilteredTracks] = useState<MusicType[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedGenre, setSelectedGenre] = useState('all');
+  const [searchFilters, setSearchFilters] = useState<SearchFilters>({
+    query: '',
+    type: 'music',
+    sortBy: 'title',
+    sortOrder: 'asc'
+  });
   const [currentTrack, setCurrentTrack] = useState<MusicType | null>(null);
+  const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
-  const [volume, setVolume] = useState(0.7);
+  const [audioError, setAudioError] = useState<string | null>(null);
+  const [dataError, setDataError] = useState<string | null>(null);
+  const [likedTracks, setLikedTracks] = useState<Set<string>>(new Set());
 
-  useEffect(() => {
-    fetchTracks();
-  }, []);
-
-  useEffect(() => {
-    filterTracks();
-  }, [searchQuery, selectedGenre, tracks]);
-
-  useEffect(() => {
-    if (audioRef.current) {
-      audioRef.current.volume = volume;
-    }
-  }, [volume]);
-
-  const fetchTracks = async () => {
+  const fetchTracks = useCallback(async () => {
     try {
-      const { data, error } = await supabase
-        .from('music')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setTracks(data || []);
-    } catch (error: any) {
-      toast.error('Failed to load music');
+      setDataError(null);
+      const result = await dataService.fetchMusic();
+      if (result && Array.isArray(result)) {
+        setTracks(result);
+      } else {
+        setDataError('Failed to load music. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error fetching music:', error);
+      setDataError('Failed to load music. Please check your connection and try again.');
     } finally {
-      setLoading(false);
+      stopLoading();
     }
-  };
+  }, [stopLoading]);
 
-  const filterTracks = () => {
+  const filterTracks = useCallback(() => {
     let filtered = tracks;
 
-    if (searchQuery) {
+    // Text search
+    if (searchFilters.query) {
       filtered = filtered.filter(
         (track) =>
-          track.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          track.artist.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          track.album?.toLowerCase().includes(searchQuery.toLowerCase())
+          track.title.toLowerCase().includes(searchFilters.query!.toLowerCase()) ||
+          track.artist.toLowerCase().includes(searchFilters.query!.toLowerCase()) ||
+          track.album?.toLowerCase().includes(searchFilters.query!.toLowerCase())
       );
     }
 
-    if (selectedGenre !== 'all') {
-      filtered = filtered.filter((track) => track.genre === selectedGenre);
+    // Genre filter
+    if (searchFilters.genre && searchFilters.genre.length > 0) {
+      filtered = filtered.filter((track) => 
+        searchFilters.genre!.some(genre => 
+          track.genre.toLowerCase().includes(genre.toLowerCase())
+        )
+      );
     }
 
+    // Rating filter
+    if (searchFilters.rating) {
+      const minRating = searchFilters.rating.min || 0;
+      const maxRating = searchFilters.rating.max || 10;
+      filtered = filtered.filter((track) => {
+        const trackRating = track.rating || 0;
+        return trackRating >= minRating && trackRating <= maxRating;
+      });
+    }
+
+    // Sort tracks
+    filtered.sort((a, b) => {
+      let aValue: string | number, bValue: string | number;
+      
+      switch (searchFilters.sortBy) {
+        case 'title':
+          aValue = a.title.toLowerCase();
+          bValue = b.title.toLowerCase();
+          break;
+        case 'rating':
+          aValue = a.rating || 0;
+          bValue = b.rating || 0;
+          break;
+        case 'popularity':
+          aValue = a.rating || 0;
+          bValue = b.rating || 0;
+          break;
+        case 'date':
+          // For music, we might not have date, so fallback to title
+          aValue = a.title.toLowerCase();
+          bValue = b.title.toLowerCase();
+          break;
+        default:
+          aValue = a.title.toLowerCase();
+          bValue = b.title.toLowerCase();
+      }
+
+      if (searchFilters.sortOrder === 'asc') {
+        return aValue > bValue ? 1 : -1;
+      } else {
+        return aValue < bValue ? 1 : -1;
+      }
+    });
+
     setFilteredTracks(filtered);
-  };
+  }, [tracks, searchFilters]);
 
-  const genres = ['all', ...Array.from(new Set(tracks.map((t) => t.genre)))];
+  useEffect(() => {
+    fetchTracks();
+  }, [fetchTracks]);
 
-  const playTrack = (track: MusicType) => {
+  useEffect(() => {
+    filterTracks();
+  }, [filterTracks]);
+
+
+  const playTrack = async (track: MusicType) => {
     if (currentTrack?.id === track.id) {
       togglePlayPause();
     } else {
       setCurrentTrack(track);
+      const index = filteredTracks.findIndex(t => t.id === track.id);
+      setCurrentTrackIndex(index);
+      setAudioError(null);
       setIsPlaying(true);
     }
   };
@@ -92,52 +150,86 @@ export const Music = () => {
 
   const playNext = () => {
     if (!currentTrack) return;
-    const currentIndex = filteredTracks.findIndex((t) => t.id === currentTrack.id);
-    const nextIndex = (currentIndex + 1) % filteredTracks.length;
+    const nextIndex = (currentTrackIndex + 1) % filteredTracks.length;
+    setCurrentTrackIndex(nextIndex);
     setCurrentTrack(filteredTracks[nextIndex]);
     setIsPlaying(true);
   };
 
   const playPrevious = () => {
     if (!currentTrack) return;
-    const currentIndex = filteredTracks.findIndex((t) => t.id === currentTrack.id);
-    const prevIndex = currentIndex === 0 ? filteredTracks.length - 1 : currentIndex - 1;
+    const prevIndex = currentTrackIndex === 0 ? filteredTracks.length - 1 : currentTrackIndex - 1;
+    setCurrentTrackIndex(prevIndex);
     setCurrentTrack(filteredTracks[prevIndex]);
     setIsPlaying(true);
   };
 
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
 
   const handleTimeUpdate = () => {
-    if (audioRef.current) {
-      setCurrentTime(audioRef.current.currentTime);
-    }
+    // Time update handled by SmartMediaPlayer
   };
 
   const handleLoadedMetadata = () => {
-    if (audioRef.current) {
-      setDuration(audioRef.current.duration);
-    }
+    setAudioError(null);
   };
 
-  const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const time = parseFloat(e.target.value);
-    setCurrentTime(time);
-    if (audioRef.current) {
-      audioRef.current.currentTime = time;
-    }
+  const handleAudioError = () => {
+    setAudioError('Failed to load audio. The file may be corrupted or unavailable.');
+    setIsPlaying(false);
   };
+
+  const handleAudioLoadStart = () => {
+    setAudioError(null);
+  };
+
+  const handleAudioCanPlay = () => {
+    setAudioError(null);
+  };
+
+  const retryFetchTracks = () => {
+    setDataError(null);
+    fetchTracks();
+  };
+
+  const handleLikeTrack = (track: MusicType) => {
+    setLikedTracks(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(track.id)) {
+        newSet.delete(track.id);
+      } else {
+        newSet.add(track.id);
+      }
+      return newSet;
+    });
+  };
+
+
 
   if (loading) {
+    return <Spinner label="Loading music..." />;
+  }
+
+  if (dataError) {
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-pink-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-slate-400">Loading music...</p>
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center p-6">
+        <div className="max-w-md w-full bg-slate-800/60 border border-slate-700 rounded-xl p-6 text-center">
+          <MusicIcon className="w-16 h-16 text-slate-500 mx-auto mb-4" />
+          <h1 className="text-white text-xl font-semibold mb-2">Unable to Load Music</h1>
+          <p className="text-slate-400 mb-4">{dataError}</p>
+          <div className="flex gap-3 justify-center">
+            <button
+              onClick={retryFetchTracks}
+              className="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg transition-colors"
+            >
+              Try Again
+            </button>
+            <button
+              onClick={goToChoice}
+              className="px-4 py-2 bg-slate-600 hover:bg-slate-700 text-white rounded-lg transition-colors"
+            >
+              Go Back
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -151,98 +243,57 @@ export const Music = () => {
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              onClick={() => navigate('/choice')}
+              onClick={goToChoice}
               className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors"
             >
               <ArrowLeft className="w-5 h-5" />
               Back
             </motion.button>
             <h1 className="text-3xl font-bold text-white">Music</h1>
-            <div className="w-20" />
           </div>
 
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search songs, artists, albums..."
-                className="w-full pl-11 pr-4 py-3 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent"
-              />
-            </div>
-
-            <div className="flex gap-2 overflow-x-auto pb-2">
-              {genres.map((genre) => (
-                <button
-                  key={genre}
-                  onClick={() => setSelectedGenre(genre)}
-                  className={`px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-all ${
-                    selectedGenre === genre
-                      ? 'bg-pink-500 text-white shadow-lg shadow-pink-500/50'
-                      : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
-                  }`}
-                >
-                  {genre.charAt(0).toUpperCase() + genre.slice(1)}
-                </button>
-              ))}
-            </div>
+          <div className="flex flex-col gap-4">
+            <UnifiedSearch
+              onFiltersChange={setSearchFilters}
+              type="music"
+              placeholder="Search songs, artists, albums..."
+              showAdvanced={true}
+            />
           </div>
         </div>
       </div>
 
+
       <div className="max-w-7xl mx-auto px-4 py-8">
         {filteredTracks.length === 0 ? (
           <div className="text-center py-20">
-            <p className="text-slate-400 text-lg">No tracks found</p>
+            <MusicIcon className="w-16 h-16 text-slate-500 mx-auto mb-4" />
+            <p className="text-slate-400 text-lg mb-2">
+              {tracks.length === 0 ? 'No music available' : 'No tracks found'}
+            </p>
+            {tracks.length === 0 ? (
+              <p className="text-slate-500 text-sm">
+                Music will appear here once it's been uploaded
+              </p>
+            ) : (
+              <p className="text-slate-500 text-sm">
+                Try adjusting your search or filter criteria
+              </p>
+            )}
           </div>
         ) : (
-          <div className="space-y-2">
-            {filteredTracks.map((track, idx) => (
-              <motion.div
-                key={track.id}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: idx * 0.02 }}
-                onClick={() => playTrack(track)}
-                className={`group flex items-center gap-4 p-4 rounded-lg cursor-pointer transition-all ${
-                  currentTrack?.id === track.id
-                    ? 'bg-pink-500/20 border border-pink-500/50'
-                    : 'bg-slate-800/50 hover:bg-slate-800 border border-transparent'
-                }`}
-              >
-                <div className="relative w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 bg-slate-700">
-                  {track.album_art_url ? (
-                    <img src={track.album_art_url} alt={track.album} className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <MusicIcon className="w-8 h-8 text-slate-500" />
-                    </div>
-                  )}
-                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Play className="w-6 h-6 text-white" fill="white" />
-                  </div>
-                </div>
-
-                <div className="flex-1 min-w-0">
-                  <h3 className="text-white font-semibold truncate">{track.title}</h3>
-                  <p className="text-slate-400 text-sm truncate">{track.artist}</p>
-                </div>
-
-                {track.album && (
-                  <div className="hidden md:block text-slate-400 text-sm truncate flex-1">
-                    {track.album}
-                  </div>
-                )}
-
-                {track.duration && (
-                  <div className="text-slate-400 text-sm">
-                    {formatTime(track.duration)}
-                  </div>
-                )}
-              </motion.div>
-            ))}
+          <div className="space-y-12">
+            {/* All Tracks in 3-Column Grid */}
+            <GridMusicList
+              tracks={filteredTracks}
+              title="Music Library"
+              subtitle={`${filteredTracks.length} ${filteredTracks.length === 1 ? 'track' : 'tracks'} available`}
+              currentTrack={currentTrack}
+              isPlaying={isPlaying}
+              onTrackSelect={playTrack}
+              onLike={handleLikeTrack}
+              isLiked={(track) => likedTracks.has(track.id)}
+            />
           </div>
         )}
       </div>
@@ -254,88 +305,62 @@ export const Music = () => {
           className="fixed bottom-0 left-0 right-0 z-50 bg-gradient-to-t from-slate-900 via-slate-900 to-slate-900/95 backdrop-blur-lg border-t border-slate-800"
         >
           <div className="max-w-7xl mx-auto px-4 py-4">
-            <div className="flex items-center gap-6">
-              <div className="flex items-center gap-4 flex-1 min-w-0">
-                <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 bg-slate-700">
-                  {currentTrack.album_art_url ? (
-                    <img src={currentTrack.album_art_url} alt={currentTrack.album} className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <MusicIcon className="w-8 h-8 text-slate-500" />
-                    </div>
-                  )}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <h3 className="text-white font-semibold truncate">{currentTrack.title}</h3>
-                  <p className="text-slate-400 text-sm truncate">{currentTrack.artist}</p>
-                </div>
+            {/* Audio Error Display */}
+            {audioError && (
+              <div className="mb-3 p-2 bg-red-500/10 border border-red-500/30 rounded-lg">
+                <p className="text-red-400 text-sm text-center">{audioError}</p>
               </div>
+            )}
+            
+            {/* Smart Media Player */}
+            <SmartMediaPlayer
+              src={currentTrack.audio_url}
+              title={currentTrack.title}
+              contentId={currentTrack.id}
+              artist={currentTrack.artist}
+              album={currentTrack.album}
+              duration={currentTrack.duration}
+              type="audio"
+              onNext={playNext}
+              onPrevious={playPrevious}
+              externalRef={audioRef}
+              onTimeUpdate={handleTimeUpdate}
+              onLoadedMetadata={handleLoadedMetadata}
+              onError={handleAudioError}
+              onLoadStart={handleAudioLoadStart}
+              onCanPlay={handleAudioCanPlay}
+              onEnded={() => {
+                // Just stop playing, don't auto-advance
+                setIsPlaying(false);
+              }}
+              autoPlay={isPlaying}
+              preload="metadata"
+              crossOrigin="anonymous"
+              audioTracks={[
+                { id: 'default', label: 'Default', language: 'en', url: '' },
+                { id: 'en', label: 'English', language: 'en', url: '' },
+                { id: 'es', label: 'Spanish', language: 'es', url: '' }
+              ]}
+              skipSegments={[]}
+              enableAutoPlay={false}
+              enableResume={true}
+              enablePiP={false}
+              enableAdaptiveBitrate={false}
+            />
 
-              <div className="flex-1 max-w-xl">
-                <div className="flex items-center justify-center gap-4 mb-2">
-                  <button
-                    onClick={playPrevious}
-                    className="text-slate-400 hover:text-white transition-colors"
-                  >
-                    <SkipBack className="w-5 h-5" />
-                  </button>
-                  <button
-                    onClick={togglePlayPause}
-                    className="w-12 h-12 bg-pink-500 hover:bg-pink-600 rounded-full flex items-center justify-center transition-colors shadow-lg shadow-pink-500/50"
-                  >
-                    {isPlaying ? (
-                      <Pause className="w-6 h-6 text-white" fill="white" />
-                    ) : (
-                      <Play className="w-6 h-6 text-white ml-1" fill="white" />
-                    )}
-                  </button>
-                  <button
-                    onClick={playNext}
-                    className="text-slate-400 hover:text-white transition-colors"
-                  >
-                    <SkipForward className="w-5 h-5" />
-                  </button>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <span className="text-xs text-slate-400 w-10 text-right">{formatTime(currentTime)}</span>
-                  <input
-                    type="range"
-                    min="0"
-                    max={duration || 0}
-                    value={currentTime}
-                    onChange={handleSeek}
-                    className="flex-1 h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-pink-500 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:cursor-pointer"
-                  />
-                  <span className="text-xs text-slate-400 w-10">{formatTime(duration)}</span>
-                </div>
+            {/* Playlist Info */}
+            {filteredTracks.length > 1 && (
+              <div className="mt-3 p-2 bg-slate-800/50 rounded-lg">
+                <p className="text-slate-400 text-xs text-center">
+                  Track {currentTrackIndex + 1} of {filteredTracks.length} • 
+                  Use ← → keys or player controls to navigate
+                </p>
               </div>
-
-              <div className="flex items-center gap-3 w-32">
-                <Volume2 className="w-5 h-5 text-slate-400" />
-                <input
-                  type="range"
-                  min="0"
-                  max="1"
-                  step="0.01"
-                  value={volume}
-                  onChange={(e) => setVolume(parseFloat(e.target.value))}
-                  className="flex-1 h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-pink-500 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:cursor-pointer"
-                />
-              </div>
-            </div>
+            )}
           </div>
         </motion.div>
       )}
 
-      <audio
-        ref={audioRef}
-        src={currentTrack?.audio_url}
-        onTimeUpdate={handleTimeUpdate}
-        onLoadedMetadata={handleLoadedMetadata}
-        onEnded={playNext}
-        autoPlay={isPlaying}
-      />
     </div>
   );
 };

@@ -1,11 +1,10 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User } from '@supabase/supabase-js';
-import { supabase, Profile } from '../lib/supabase';
+import { supabase } from '../lib/supabase';
 import toast from 'react-hot-toast';
 
 interface AuthContextType {
   user: User | null;
-  profile: Profile | null;
   loading: boolean;
   signUp: (email: string, password: string) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
@@ -24,69 +23,77 @@ export const useAuth = () => {
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchProfile(session.user.id);
-      } else {
-        setLoading(false);
-      }
+      setLoading(false);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      (async () => {
-        setUser(session?.user ?? null);
-        if (session?.user) {
-          await fetchProfile(session.user.id);
-        } else {
-          setProfile(null);
-          setLoading(false);
-        }
-      })();
+      setUser(session?.user ?? null);
+      setLoading(false);
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
-  const fetchProfile = async (userId: string) => {
+  const signUp = async (email: string, password: string) => {
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .maybeSingle();
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        throw new Error('Please enter a valid email address');
+      }
 
-      if (error) throw error;
-      setProfile(data);
-    } catch (error) {
-      console.error('Error fetching profile:', error);
-    } finally {
-      setLoading(false);
+      // Validate password strength
+      if (password.length < 8) {
+        throw new Error('Password must be at least 8 characters long');
+      }
+
+      const { error: authError } = await supabase.auth.signUp({
+        email: email.toLowerCase().trim(),
+        password,
+      });
+
+      if (authError) {
+        console.error('Auth signup error:', authError);
+        
+        // Handle rate limiting specifically
+        if (authError.message.includes('For security purposes')) {
+          throw new Error('Please wait a moment before trying again. Too many signup attempts.');
+        }
+        
+        throw authError;
+      }
+
+      toast.success('Account created successfully!');
+    } catch (error: unknown) {
+      console.error('Signup error:', error);
+      throw error;
     }
   };
 
-  const signUp = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-    });
-
-    if (error) throw error;
-    toast.success('Account created successfully!');
-  };
-
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    try {
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        throw new Error('Please enter a valid email address');
+      }
 
-    if (error) throw error;
-    toast.success('Welcome back!');
+      const { error } = await supabase.auth.signInWithPassword({
+        email: email.toLowerCase().trim(),
+        password,
+      });
+
+      if (error) throw error;
+      toast.success('Welcome back!');
+    } catch (error: unknown) {
+      console.error('Signin error:', error);
+      throw error;
+    }
   };
 
   const signOut = async () => {
@@ -96,7 +103,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading, signUp, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, loading, signUp, signIn, signOut }}>
       {children}
     </AuthContext.Provider>
   );

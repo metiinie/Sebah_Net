@@ -1,15 +1,17 @@
 import { motion } from 'framer-motion';
-import { Film, Music, LogOut } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Film, Music, LogOut, Upload, Crown } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { RoleIndicator } from '../components/RoleIndicator';
+import { PermissionGuard } from '../components/PermissionGuard';
+import { usePageNavigation } from '../hooks/usePageNavigation';
 
 export const Choice = () => {
-  const navigate = useNavigate();
-  const { signOut, profile } = useAuth();
+  const { goToAuth, goToUpload, goToAdmin, goToMovies, goToMusic } = usePageNavigation();
+  const { signOut } = useAuth();
 
   const handleSignOut = async () => {
     await signOut();
-    navigate('/');
+    goToAuth();
   };
 
   return (
@@ -20,23 +22,50 @@ export const Choice = () => {
           animate={{ opacity: 1, y: 0 }}
           className="flex justify-between items-center mb-12"
         >
-          <div>
-            <h1 className="text-4xl md:text-5xl font-bold text-white mb-2">
-              Welcome to StreamChoice
-            </h1>
-            <p className="text-slate-400 text-lg">Choose your entertainment experience</p>
+          <div className="flex items-center gap-6">
+            
+            <div>
+              <h1 className="text-4xl md:text-5xl font-bold text-white mb-2">
+                Welcome to Combine Site
+              </h1>
+              <p className="text-slate-400 text-lg mb-4">Choose your entertainment experience</p>
+              <RoleIndicator showPermissions={false} size="sm" />
+            </div>
           </div>
           <div className="flex items-center gap-4">
-            {profile?.role === 'admin' && (
+            <PermissionGuard permission="upload_movies" fallback={
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                onClick={() => navigate('/admin')}
-                className="px-6 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-medium transition-colors"
+                disabled
+                className="flex items-center gap-2 px-6 py-2 bg-slate-600 text-slate-400 rounded-lg font-medium cursor-not-allowed opacity-50"
               >
+                <Upload className="w-4 h-4" />
+                Upload
+              </motion.button>
+            }>
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={goToUpload}
+                className="flex items-center gap-2 px-6 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg font-medium transition-colors"
+              >
+                <Upload className="w-4 h-4" />
+                Upload
+              </motion.button>
+            </PermissionGuard>
+            
+            <PermissionGuard permission="access_admin_panel" fallback={null}>
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={goToAdmin}
+                className="flex items-center gap-2 px-6 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-medium transition-colors"
+              >
+                <Crown className="w-4 h-4" />
                 Admin Panel
               </motion.button>
-            )}
+            </PermissionGuard>
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
@@ -55,7 +84,7 @@ export const Choice = () => {
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.2 }}
             whileHover={{ scale: 1.02, y: -8 }}
-            onClick={() => navigate('/movies')}
+            onClick={goToMovies}
             className="group relative cursor-pointer"
           >
             <div className="absolute inset-0 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-3xl blur-xl opacity-50 group-hover:opacity-75 transition-opacity" />
@@ -87,7 +116,7 @@ export const Choice = () => {
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.3 }}
             whileHover={{ scale: 1.02, y: -8 }}
-            onClick={() => navigate('/music')}
+            onClick={goToMusic}
             className="group relative cursor-pointer"
           >
             <div className="absolute inset-0 bg-gradient-to-br from-pink-500 to-purple-600 rounded-3xl blur-xl opacity-50 group-hover:opacity-75 transition-opacity" />

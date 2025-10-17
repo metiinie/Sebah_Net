@@ -12,10 +12,12 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.4",
+    "@types/react-dropzone": "^4.2.2",
     "framer-motion": "^12.23.22",
     "lucide-react": "^0.344.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "react-dropzone": "^14.3.8",
     "react-hot-toast": "^2.6.0",
     "react-router-dom": "^7.9.3"
   },
