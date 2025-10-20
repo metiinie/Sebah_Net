@@ -373,7 +373,6 @@ export const SmartMediaPlayer = ({
     {
       key: ' ',
       action: () => {
-        event?.preventDefault();
         togglePlay();
       },
       description: 'Play/Pause'
@@ -381,7 +380,6 @@ export const SmartMediaPlayer = ({
     {
       key: 'ArrowLeft',
       action: () => {
-        event?.preventDefault();
         if (mediaElement) {
           const newTime = Math.max(0, mediaElement.currentTime - 10);
           mediaElement.currentTime = newTime;
@@ -393,7 +391,6 @@ export const SmartMediaPlayer = ({
     {
       key: 'ArrowRight',
       action: () => {
-        event?.preventDefault();
         if (mediaElement) {
           const newTime = Math.min(mediaElement.duration, mediaElement.currentTime + 10);
           mediaElement.currentTime = newTime;
@@ -405,7 +402,6 @@ export const SmartMediaPlayer = ({
     {
       key: 'ArrowUp',
       action: () => {
-        event?.preventDefault();
         setVolume(Math.min(1, volume + 0.1));
       },
       description: 'Increase volume'
@@ -413,7 +409,6 @@ export const SmartMediaPlayer = ({
     {
       key: 'ArrowDown',
       action: () => {
-        event?.preventDefault();
         setVolume(Math.max(0, volume - 0.1));
       },
       description: 'Decrease volume'
@@ -421,7 +416,6 @@ export const SmartMediaPlayer = ({
     {
       key: 'm',
       action: () => {
-        event?.preventDefault();
         toggleMute();
       },
       description: 'Mute/Unmute'
@@ -429,7 +423,6 @@ export const SmartMediaPlayer = ({
     {
       key: 'f',
       action: () => {
-        event?.preventDefault();
         if (type === 'video') {
           toggleFullscreen();
         }
@@ -439,7 +432,6 @@ export const SmartMediaPlayer = ({
     {
       key: 's',
       action: () => {
-        event?.preventDefault();
         setShowSettings(!showSettings);
       },
       description: 'Toggle settings'
@@ -447,7 +439,6 @@ export const SmartMediaPlayer = ({
     {
       key: 'p',
       action: () => {
-        event?.preventDefault();
         if (type === 'video' && enablePiP) {
           togglePictureInPicture();
         }
@@ -457,7 +448,6 @@ export const SmartMediaPlayer = ({
     {
       key: 'c',
       action: () => {
-        event?.preventDefault();
         setShowSubtitleMenu(!showSubtitleMenu);
       },
       description: 'Toggle subtitles'
@@ -465,7 +455,6 @@ export const SmartMediaPlayer = ({
     {
       key: 'a',
       action: () => {
-        event?.preventDefault();
         setShowAudioMenu(!showAudioMenu);
       },
       description: 'Toggle audio tracks'
@@ -473,7 +462,6 @@ export const SmartMediaPlayer = ({
     {
       key: 'q',
       action: () => {
-        event?.preventDefault();
         setShowQualityMenu(!showQualityMenu);
       },
       description: 'Toggle quality menu'
@@ -1015,7 +1003,6 @@ export const SmartMediaPlayer = ({
               crossOrigin={(crossOrigin as "anonymous" | "use-credentials" | "") || "anonymous"}
               controls={false}
               playsInline
-              webkit-playsinline="true"
               muted={showCoverPage}
             />
             

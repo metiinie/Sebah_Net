@@ -1,5 +1,4 @@
 import { supabase, Movie, Music } from './supabase';
-import toast from 'react-hot-toast';
 
 
 // Retry configuration

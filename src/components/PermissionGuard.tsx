@@ -1,5 +1,6 @@
 import { ReactNode } from 'react';
-import { usePermissions, Permission } from '../hooks/usePermissions';
+import { usePermissions } from '../hooks/usePermissions';
+import type { Permission } from '../lib/constants';
 import { Shield, Lock, Crown, User } from 'lucide-react';
 import { motion } from 'framer-motion';
 

@@ -22,7 +22,7 @@ interface UploadProgress {
   status: 'uploading' | 'processing' | 'completed' | 'error';
   error?: string;
   url?: string;
-  thumbnailUrl?: string;
+  thumbnailUrl?: string | null;
 }
 
 interface MovieMetadata {

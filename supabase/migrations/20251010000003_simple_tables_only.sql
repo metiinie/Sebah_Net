@@ -208,14 +208,18 @@ FOR INSERT WITH CHECK (
 
 CREATE POLICY "Users can update their own media files" ON storage.objects
 FOR UPDATE USING (
-  bucket_id = 'media' 
-  AND auth.role() = 'authenticated'
+  bucket_id = 'media'
+  AND (
+    owner = auth.uid() OR is_admin_by_id(auth.uid())
+  )
 );
 
 CREATE POLICY "Users can delete their own media files" ON storage.objects
 FOR DELETE USING (
-  bucket_id = 'media' 
-  AND auth.role() = 'authenticated'
+  bucket_id = 'media'
+  AND (
+    owner = auth.uid() OR is_admin_by_id(auth.uid())
+  )
 );
 
 -- =============================================

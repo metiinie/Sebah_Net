@@ -560,7 +560,7 @@ export class SearchService {
       }));
   }
 
-  private async getContextualRecommendions(context: RecommendationContext): Promise<Recommendation[]> {
+  private async getContextualRecommendations(context: RecommendationContext): Promise<Recommendation[]> {
     const recommendations: Recommendation[] = [];
 
     // Time-based recommendations
