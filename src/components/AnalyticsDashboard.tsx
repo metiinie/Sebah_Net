@@ -1,11 +1,11 @@
 import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { 
-  BarChart3, 
-  TrendingUp, 
-  Users, 
-  Play, 
-  Clock, 
+import {
+  BarChart3,
+  TrendingUp,
+  Users,
+  Play,
+  Clock,
   Star,
   Eye,
   Heart,
@@ -33,14 +33,14 @@ export const AnalyticsDashboard = () => {
     const timeoutId = setTimeout(() => {
       fetchAnalytics();
     }, 100); // Small delay to prevent rapid re-fetching
-    
+
     return () => clearTimeout(timeoutId);
   }, [timeRange]);
 
   const fetchAnalytics = async () => {
     try {
       setLoading(true);
-      
+
       // Fetch movies and music counts
       const [moviesRes, musicRes] = await Promise.all([
         supabase.from('movies').select('*'),
@@ -56,12 +56,12 @@ export const AnalyticsDashboard = () => {
       // Calculate analytics
       const totalMovies = movies.length;
       const totalMusic = music.length;
-      
+
       // Get recent uploads (last 30 days)
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      
-      const recentUploads = [...movies, ...music].filter(item => 
+
+      const recentUploads = [...movies, ...music].filter(item =>
         new Date(item.created_at) > thirtyDaysAgo
       ).length;
 
@@ -87,22 +87,22 @@ export const AnalyticsDashboard = () => {
         .slice(0, 5);
 
       // Monthly stats (last 6 months)
-      const monthlyStats = [];
+      const monthlyStats: { month: string; movies: number; music: number }[] = [];
       for (let i = 5; i >= 0; i--) {
         const date = new Date();
         date.setMonth(date.getMonth() - i);
         const month = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-        
+
         const monthMovies = movies.filter(movie => {
           const movieDate = new Date(movie.created_at);
-          return movieDate.getMonth() === date.getMonth() && 
-                 movieDate.getFullYear() === date.getFullYear();
+          return movieDate.getMonth() === date.getMonth() &&
+            movieDate.getFullYear() === date.getFullYear();
         }).length;
 
         const monthMusic = music.filter(track => {
           const trackDate = new Date(track.created_at);
-          return trackDate.getMonth() === date.getMonth() && 
-                 trackDate.getFullYear() === date.getFullYear();
+          return trackDate.getMonth() === date.getMonth() &&
+            trackDate.getFullYear() === date.getFullYear();
         }).length;
 
         monthlyStats.push({ month, movies: monthMovies, music: monthMusic });
@@ -110,15 +110,15 @@ export const AnalyticsDashboard = () => {
 
       // Top rated content
       const topRated = [
-        ...movies.filter(m => m.rating).map(m => ({ 
-          title: m.title, 
-          rating: m.rating, 
-          type: 'movie' as const 
+        ...movies.filter(m => m.rating).map(m => ({
+          title: m.title,
+          rating: m.rating,
+          type: 'movie' as const
         })),
-        ...music.filter(m => m.rating).map(m => ({ 
-          title: m.title, 
-          rating: m.rating, 
-          type: 'music' as const 
+        ...music.filter(m => m.rating).map(m => ({
+          title: m.title,
+          rating: m.rating,
+          type: 'music' as const
         }))
       ].sort((a, b) => b.rating - a.rating).slice(0, 5);
 
@@ -131,7 +131,7 @@ export const AnalyticsDashboard = () => {
         monthlyStats,
         topRated
       }), [totalMovies, totalMusic, recentUploads, popularGenres, monthlyStats, topRated]);
-      
+
       setAnalytics(analyticsData);
     } catch (error) {
       console.error('Error fetching analytics:', error);
@@ -163,12 +163,12 @@ export const AnalyticsDashboard = () => {
     );
   }
 
-  const StatCard = ({ 
-    title, 
-    value, 
-    icon: Icon, 
+  const StatCard = ({
+    title,
+    value,
+    icon: Icon,
     color = 'blue',
-    trend 
+    trend
   }: {
     title: string;
     value: number | string;
@@ -212,7 +212,7 @@ export const AnalyticsDashboard = () => {
           <BarChart3 className="w-6 h-6 text-purple-400" />
           <h2 className="text-2xl font-bold text-white">Analytics Dashboard</h2>
         </div>
-        
+
         <select
           value={timeRange}
           onChange={(e) => setTimeRange(e.target.value as any)}
@@ -271,8 +271,8 @@ export const AnalyticsDashboard = () => {
                   <div className="w-20 h-2 bg-slate-700 rounded-full overflow-hidden">
                     <div
                       className="h-full bg-gradient-to-r from-purple-500 to-blue-500 rounded-full"
-                      style={{ 
-                        width: `${(genre.count / Math.max(...analytics.popularGenres.map(g => g.count))) * 100}%` 
+                      style={{
+                        width: `${(genre.count / Math.max(...analytics.popularGenres.map(g => g.count))) * 100}%`
                       }}
                     />
                   </div>
@@ -315,7 +315,7 @@ export const AnalyticsDashboard = () => {
           {analytics.monthlyStats.map((stat, index) => {
             const maxValue = Math.max(...analytics.monthlyStats.map(s => s.movies + s.music));
             const height = ((stat.movies + stat.music) / maxValue) * 100;
-            
+
             return (
               <div key={stat.month} className="flex-1 flex flex-col items-center">
                 <div className="w-full flex flex-col justify-end h-48 gap-1">

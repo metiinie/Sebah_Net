@@ -13,11 +13,11 @@ interface UnifiedSearchProps {
   showAdvanced?: boolean;
 }
 
-export const UnifiedSearch = ({ 
-  onFiltersChange, 
-  type, 
-  availableCategories = [], 
-  availableGenres = [], 
+export const UnifiedSearch = ({
+  onFiltersChange,
+  type,
+  availableCategories = [],
+  availableGenres = [],
   availableYears = [],
   placeholder,
   showAdvanced = true
@@ -126,7 +126,7 @@ export const UnifiedSearch = ({
               <span className="w-2 h-2 bg-pink-500 rounded-full"></span>
             )}
           </button>
-          
+
           {hasActiveFilters && (
             <button
               onClick={clearFilters}
@@ -222,12 +222,12 @@ export const UnifiedSearch = ({
                     min="0"
                     max="5"
                     step="0.5"
-                    value={filters.rating}
+                    value={typeof filters.rating === 'number' ? filters.rating : 0}
                     onChange={(e) => handleFilterChange('rating', parseFloat(e.target.value))}
                     className="flex-1"
                   />
                   <span className="text-white text-sm min-w-[2rem]">
-                    {filters.rating > 0 ? filters.rating.toFixed(1) : 'Any'}
+                    {typeof filters.rating === 'number' && filters.rating > 0 ? filters.rating.toFixed(1) : 'Any'}
                   </span>
                 </div>
               </div>
@@ -248,7 +248,7 @@ export const UnifiedSearch = ({
                   <option value="duration">Duration</option>
                 </select>
               </div>
-              
+
               <button
                 onClick={() => handleFilterChange('sortOrder', filters.sortOrder === 'asc' ? 'desc' : 'asc')}
                 className="flex items-center gap-1 p-2 bg-slate-700 hover:bg-slate-600 border border-slate-600 rounded text-white text-sm transition-colors"

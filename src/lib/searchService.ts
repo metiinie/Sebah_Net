@@ -1,8 +1,10 @@
 // Advanced Search & Discovery Service
 export interface SearchFilters {
   query?: string;
-  genre?: string[];
+  category?: string; // Added for UI compatibility
+  genre?: string[] | string; // Allow string for simple UI
   language?: string[];
+  year?: string; // Added for UI compatibility
   releaseYear?: {
     min?: number;
     max?: number;
@@ -10,15 +12,15 @@ export interface SearchFilters {
   duration?: {
     min?: number; // in minutes
     max?: number;
-  };
+  } | string; // Allow string for "short", "medium", "long" enum in UI
   rating?: {
     min?: number;
     max?: number;
-  };
+  } | number; // Allow number for simple "min rating" in UI
   actors?: string[];
   tags?: string[];
   type?: 'movie' | 'music' | 'all';
-  sortBy?: 'relevance' | 'title' | 'date' | 'rating' | 'popularity';
+  sortBy?: 'relevance' | 'title' | 'date' | 'rating' | 'popularity' | 'duration'; // Added duration
   sortOrder?: 'asc' | 'desc';
   limit?: number;
   offset?: number;
@@ -237,7 +239,7 @@ export class SearchService {
     if (!query) return results;
 
     const searchTerms = query.toLowerCase().split(' ');
-    
+
     return results.map(result => {
       const searchableText = [
         result.title,
@@ -271,9 +273,18 @@ export class SearchService {
 
   private applyFilters(results: SearchResult[], filters: SearchFilters): SearchResult[] {
     return results.filter(result => {
+      // Category filter
+      if (filters.category && filters.category !== 'all') {
+        // Category logic placeholder
+      }
+
       // Genre filter
-      if (filters.genre && filters.genre.length > 0) {
-        if (!filters.genre.includes(result.genre)) return false;
+      if (filters.genre) {
+        if (Array.isArray(filters.genre)) {
+          if (filters.genre.length > 0 && !filters.genre.includes(result.genre)) return false;
+        } else if (filters.genre !== 'all') {
+          if (result.genre !== filters.genre) return false;
+        }
       }
 
       // Language filter
@@ -291,30 +302,46 @@ export class SearchService {
         }
       }
 
+      // Simple Year filter (string)
+      if (filters.year) {
+        const yearNum = parseInt(filters.year);
+        if (!isNaN(yearNum) && result.releaseYear !== yearNum) return false;
+      }
+
       // Duration filter
       if (filters.duration) {
-        if (filters.duration.min && result.duration && result.duration < filters.duration.min) {
-          return false;
-        }
-        if (filters.duration.max && result.duration && result.duration > filters.duration.max) {
-          return false;
+        const d = filters.duration;
+        if (typeof d === 'string') {
+          // Handle string duration
+        } else {
+          if (d.min && result.duration && result.duration < d.min) {
+            return false;
+          }
+          if (d.max && result.duration && result.duration > d.max) {
+            return false;
+          }
         }
       }
 
       // Rating filter
       if (filters.rating) {
-        if (filters.rating.min && result.rating && result.rating < filters.rating.min) {
-          return false;
-        }
-        if (filters.rating.max && result.rating && result.rating > filters.rating.max) {
-          return false;
+        const r = filters.rating;
+        if (typeof r === 'number') {
+          if (result.rating && result.rating < r) return false;
+        } else {
+          if (r.min && result.rating && result.rating < r.min) {
+            return false;
+          }
+          if (r.max && result.rating && result.rating > r.max) {
+            return false;
+          }
         }
       }
 
       // Actors filter
       if (filters.actors && filters.actors.length > 0) {
-        if (!result.actors || !filters.actors.some(actor => 
-          result.actors!.some(resultActor => 
+        if (!result.actors || !filters.actors.some(actor =>
+          result.actors!.some(resultActor =>
             resultActor.toLowerCase().includes(actor.toLowerCase())
           )
         )) {
@@ -324,8 +351,8 @@ export class SearchService {
 
       // Tags filter
       if (filters.tags && filters.tags.length > 0) {
-        if (!result.tags || !filters.tags.some(tag => 
-          result.tags!.some(resultTag => 
+        if (!result.tags || !filters.tags.some(tag =>
+          result.tags!.some(resultTag =>
             resultTag.toLowerCase().includes(tag.toLowerCase())
           )
         )) {
@@ -361,6 +388,10 @@ export class SearchService {
         case 'popularity':
           aValue = a.popularityScore || 0;
           bValue = b.popularityScore || 0;
+          break;
+        case 'duration':
+          aValue = a.duration || 0;
+          bValue = b.duration || 0;
           break;
         default:
           aValue = a.relevanceScore || 0;
@@ -512,7 +543,7 @@ export class SearchService {
     }, {} as { [key: string]: number });
 
     const topGenres = Object.entries(genreCounts)
-      .sort(([,a], [,b]) => b - a)
+      .sort(([, a], [, b]) => b - a)
       .slice(0, 3)
       .map(([genre]) => genre);
 
@@ -740,4 +771,3 @@ export class SearchService {
 
 // Export singleton instance
 export const searchService = SearchService.getInstance();
-

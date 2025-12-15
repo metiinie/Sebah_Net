@@ -199,7 +199,7 @@ class PersonalizationService {
     deviceInfo: string
   ): Promise<RecentlyWatched> {
     const completionPercentage = (watchTime / totalDuration) * 100;
-    
+
     const { data, error } = await supabase
       .from('recently_watched')
       .insert({
@@ -429,7 +429,7 @@ class PersonalizationService {
 
       if (content) {
         // Check age rating
-        if (content.age_rating && content.age_rating > profile.age_rating_limit) {
+        if (content.age_rating && profile.age_rating_limit && content.age_rating > profile.age_rating_limit) {
           return false;
         }
 
@@ -455,7 +455,7 @@ class PersonalizationService {
             if (restriction.days.includes(currentDay)) {
               const startHour = parseInt(restriction.start_time.split(':')[0]);
               const endHour = parseInt(restriction.end_time.split(':')[0]);
-              
+
               if (currentHour >= startHour && currentHour <= endHour) {
                 return false;
               }

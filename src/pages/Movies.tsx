@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Play, Star, Clock, ArrowLeft, X, Film, Plus, Heart } from 'lucide-react';
 import { Movie } from '../lib/supabase';
+import { SearchFilters } from '../lib/searchService';
 import { dataService } from '../lib/dataService';
 import { Spinner } from '../components/Spinner';
 import { UnifiedSearch } from '../components/UnifiedSearch';
@@ -17,15 +18,15 @@ export const Movies = () => {
   const [filteredMovies, setFilteredMovies] = useState<Movie[]>([]);
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
   const [currentMovieIndex, setCurrentMovieIndex] = useState(0);
-  const [searchFilters, setSearchFilters] = useState({
+  const [searchFilters, setSearchFilters] = useState<SearchFilters>({
     query: '',
     category: '',
     genre: '',
     year: '',
     rating: 0,
     duration: '',
-    sortBy: 'title' as const,
-    sortOrder: 'asc' as const
+    sortBy: 'title',
+    sortOrder: 'asc'
   });
   const [dataError, setDataError] = useState<string | null>(null);
   const [watchlist, setWatchlist] = useState<Set<string>>(new Set());
@@ -43,10 +44,10 @@ export const Movies = () => {
       setDataError(null);
       const result = await dataService.fetchMovies();
       console.log('Fetched movies:', result);
-      
+
       // Log fetched movies for debugging
       console.log('Successfully fetched movies:', result.length);
-      
+
       if (result && Array.isArray(result)) {
         setMovies(result);
       } else {
@@ -67,8 +68,8 @@ export const Movies = () => {
     if (searchFilters.query) {
       filtered = filtered.filter(
         (movie) =>
-          movie.title.toLowerCase().includes(searchFilters.query.toLowerCase()) ||
-          movie.description?.toLowerCase().includes(searchFilters.query.toLowerCase())
+          movie.title.toLowerCase().includes((searchFilters.query || '').toLowerCase()) ||
+          movie.description?.toLowerCase().includes((searchFilters.query || '').toLowerCase())
       );
     }
 
@@ -89,27 +90,36 @@ export const Movies = () => {
     }
 
     // Rating filter
-    if (searchFilters.rating > 0) {
-      filtered = filtered.filter((movie) => movie.rating >= searchFilters.rating);
+    if (searchFilters.rating) {
+      const r = searchFilters.rating;
+      const minRating = typeof r === 'number' ? r : (r.min || 0);
+      filtered = filtered.filter((movie) => movie.rating >= minRating);
     }
 
     // Duration filter
     if (searchFilters.duration) {
       filtered = filtered.filter((movie) => {
         const duration = movie.duration || 0;
-        switch (searchFilters.duration) {
-          case 'short': return duration < 5400; // < 90 min
-          case 'medium': return duration >= 5400 && duration <= 9000; // 90-150 min
-          case 'long': return duration > 9000; // > 150 min
-          default: return true;
+        const d = searchFilters.duration;
+
+        // Handle explicit string enum values
+        if (typeof d === 'string') {
+          switch (d) {
+            case 'short': return duration < 5400; // < 90 min
+            case 'medium': return duration >= 5400 && duration <= 9000; // 90-150 min
+            case 'long': return duration > 9000; // > 150 min
+            default: return true;
+          }
         }
+        // Handle object range if ever used here (though UI uses string enum)
+        return true;
       });
     }
 
     // Sort
     filtered.sort((a, b) => {
       let aValue: any, bValue: any;
-      
+
       switch (searchFilters.sortBy) {
         case 'title':
           aValue = a.title.toLowerCase();
@@ -377,7 +387,7 @@ export const Movies = () => {
                 {filteredMovies.length > 1 && (
                   <div className="mt-4 p-3 bg-slate-800/50 rounded-lg">
                     <p className="text-slate-400 text-sm">
-                      Movie {currentMovieIndex + 1} of {filteredMovies.length} • 
+                      Movie {currentMovieIndex + 1} of {filteredMovies.length} •
                       Use ← → keys or player controls to navigate
                     </p>
                   </div>

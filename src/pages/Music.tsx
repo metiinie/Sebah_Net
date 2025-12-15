@@ -61,18 +61,28 @@ export const Music = () => {
     }
 
     // Genre filter
-    if (searchFilters.genre && searchFilters.genre.length > 0) {
-      filtered = filtered.filter((track) => 
-        searchFilters.genre!.some(genre => 
-          track.genre.toLowerCase().includes(genre.toLowerCase())
-        )
-      );
+    if (searchFilters.genre) {
+      const g = searchFilters.genre;
+      if (Array.isArray(g)) {
+        if (g.length > 0) {
+          filtered = filtered.filter((track) =>
+            g.some(genre => track.genre.toLowerCase().includes(genre.toLowerCase()))
+          );
+        }
+      } else if (g !== 'all') {
+        filtered = filtered.filter((track) =>
+          track.genre.toLowerCase().includes(g.toLowerCase())
+        );
+      }
     }
 
     // Rating filter
     if (searchFilters.rating) {
-      const minRating = searchFilters.rating.min || 0;
-      const maxRating = searchFilters.rating.max || 10;
+      const r = searchFilters.rating;
+      // If number, treat as min rating; if object, treat as range
+      const minRating = typeof r === 'number' ? r : (r.min || 0);
+      const maxRating = typeof r === 'number' ? 10 : (r.max || 10);
+
       filtered = filtered.filter((track) => {
         const trackRating = track.rating || 0;
         return trackRating >= minRating && trackRating <= maxRating;
@@ -82,7 +92,7 @@ export const Music = () => {
     // Sort tracks
     filtered.sort((a, b) => {
       let aValue: string | number, bValue: string | number;
-      
+
       switch (searchFilters.sortBy) {
         case 'title':
           aValue = a.title.toLowerCase();
@@ -311,7 +321,7 @@ export const Music = () => {
                 <p className="text-red-400 text-sm text-center">{audioError}</p>
               </div>
             )}
-            
+
             {/* Smart Media Player */}
             <SmartMediaPlayer
               src={currentTrack.audio_url}
@@ -352,7 +362,7 @@ export const Music = () => {
             {filteredTracks.length > 1 && (
               <div className="mt-3 p-2 bg-slate-800/50 rounded-lg">
                 <p className="text-slate-400 text-xs text-center">
-                  Track {currentTrackIndex + 1} of {filteredTracks.length} • 
+                  Track {currentTrackIndex + 1} of {filteredTracks.length} •
                   Use ← → keys or player controls to navigate
                 </p>
               </div>

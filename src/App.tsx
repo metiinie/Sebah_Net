@@ -7,7 +7,6 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { Spinner } from './components/Spinner';
 import { EnhancedHeader } from './components/EnhancedHeader';
-import { KeyboardShortcutsHelp } from './components/KeyboardShortcutsHelp';
 
 // Lazy load components for better performance
 const Auth = lazy(() => import('./pages/Auth').then(m => ({ default: m.Auth })));
@@ -28,7 +27,7 @@ function App() {
         <AuthProvider>
           <ErrorBoundary>
             <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-              <Suspense fallback={<Spinner label="Loading app..." />}> 
+              <Suspense fallback={<Spinner label="Loading app..." />}>
                 <EnhancedHeader />
                 <main className="relative">
                   <Routes>
@@ -125,7 +124,6 @@ function App() {
                 },
               }}
             />
-            <KeyboardShortcutsHelp />
           </ErrorBoundary>
         </AuthProvider>
       </ThemeProvider>

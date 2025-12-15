@@ -50,7 +50,7 @@ export const generateVideoThumbnail = async (
       // Set video dimensions to match canvas
       video.width = width;
       video.height = height;
-      
+
       // Seek to the specified time
       video.currentTime = Math.min(timeOffset, video.duration - 0.1);
     });
@@ -60,7 +60,7 @@ export const generateVideoThumbnail = async (
       try {
         // Draw the video frame to canvas
         ctx.drawImage(video, 0, 0, width, height);
-        
+
         // Convert canvas to blob
         canvas.toBlob((blob) => {
           if (!blob) {
@@ -112,7 +112,7 @@ export const generateMultipleThumbnails = async (
   timePoints: number[] = [1, 3, 5, 10, 15],
   options: Omit<ThumbnailOptions, 'timeOffset'> = {}
 ): Promise<ThumbnailResult[]> => {
-  const promises = timePoints.map(timeOffset => 
+  const promises = timePoints.map(timeOffset =>
     generateVideoThumbnail(videoUrl, { ...options, timeOffset })
   );
 
@@ -152,7 +152,9 @@ class ThumbnailCache {
     // Remove oldest entries if cache is full
     if (this.cache.size >= this.maxSize) {
       const firstKey = this.cache.keys().next().value;
-      this.cache.delete(firstKey);
+      if (firstKey) {
+        this.cache.delete(firstKey);
+      }
     }
     this.cache.set(key, thumbnail);
   }
@@ -184,7 +186,7 @@ export const generateCachedThumbnail = async (
   options: ThumbnailOptions = {}
 ): Promise<ThumbnailResult> => {
   const cacheKey = `${videoUrl}_${options.timeOffset || 5}_${options.width || 320}_${options.height || 180}`;
-  
+
   // Check cache first
   if (thumbnailCache.has(cacheKey)) {
     return thumbnailCache.get(cacheKey)!;
@@ -192,10 +194,10 @@ export const generateCachedThumbnail = async (
 
   // Generate new thumbnail
   const thumbnail = await generateVideoThumbnail(videoUrl, options);
-  
+
   // Cache the result
   thumbnailCache.set(cacheKey, thumbnail);
-  
+
   return thumbnail;
 };
 
@@ -222,7 +224,7 @@ export const extractVideoUrlFromThumbnail = (thumbnailUrl: string): string | nul
   if (!isThumbnailUrl(thumbnailUrl)) {
     return null;
   }
-  
+
   try {
     const url = new URL(thumbnailUrl.replace('thumbnail://', 'http://'));
     return decodeURIComponent(url.pathname);

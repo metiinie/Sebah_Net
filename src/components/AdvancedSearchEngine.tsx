@@ -1,11 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Search, 
-  Filter, 
-  X, 
-  Clock, 
-  TrendingUp, 
+import {
+  Search,
+  Filter,
+  X,
+  Clock,
+  TrendingUp,
   Star,
   Calendar,
   Clock as ClockIcon,
@@ -45,7 +45,7 @@ export const AdvancedSearchEngine = ({
   const [showFiltersPanel, setShowFiltersPanel] = useState(false);
   const [showSuggestionsPanel, setShowSuggestionsPanel] = useState(false);
   const [searchHistory, setSearchHistory] = useState<string[]>([]);
-  
+
   // Filter states
   const [filters, setFilters] = useState<SearchFilters>({
     type: 'all',
@@ -151,7 +151,7 @@ export const AdvancedSearchEngine = ({
   const handleFilterChange = useCallback((newFilters: Partial<SearchFilters>) => {
     const updatedFilters = { ...filters, ...newFilters };
     setFilters(updatedFilters);
-    
+
     if (query) {
       handleSearch(query, updatedFilters);
     }
@@ -165,7 +165,7 @@ export const AdvancedSearchEngine = ({
       limit: 20
     };
     setFilters(clearedFilters);
-    
+
     if (query) {
       handleSearch(query, clearedFilters);
     }
@@ -202,6 +202,29 @@ export const AdvancedSearchEngine = ({
     return rating.toFixed(1);
   };
 
+  const getRatingMin = () => {
+    if (typeof filters.rating === 'number') return filters.rating;
+    return filters.rating?.min;
+  };
+
+  const getRatingMax = () => {
+    if (typeof filters.rating === 'number') return undefined;
+    return filters.rating?.max;
+  };
+
+  const updateRating = (field: 'min' | 'max', value: number | undefined) => {
+    let newRating: { min?: number; max?: number } = {};
+
+    if (typeof filters.rating === 'number') {
+      newRating = { min: filters.rating };
+    } else if (filters.rating) {
+      newRating = { ...filters.rating };
+    }
+
+    newRating[field] = value;
+    handleFilterChange({ rating: newRating });
+  };
+
   return (
     <div className="advanced-search-engine">
       {/* Search Input */}
@@ -222,7 +245,7 @@ export const AdvancedSearchEngine = ({
             placeholder={placeholder}
             className="w-full pl-11 pr-20 py-3 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
-          
+
           {/* Clear and Filter Buttons */}
           <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
             {query && (
@@ -234,13 +257,12 @@ export const AdvancedSearchEngine = ({
                 <X className="w-4 h-4" />
               </button>
             )}
-            
+
             {showFilters && (
               <button
                 onClick={() => setShowFiltersPanel(!showFiltersPanel)}
-                className={`p-1 transition-colors ${
-                  showFiltersPanel ? 'text-blue-400' : 'text-slate-400 hover:text-white'
-                }`}
+                className={`p-1 transition-colors ${showFiltersPanel ? 'text-blue-400' : 'text-slate-400 hover:text-white'
+                  }`}
                 title="Filters"
               >
                 <SlidersHorizontal className="w-4 h-4" />
@@ -406,11 +428,11 @@ export const AdvancedSearchEngine = ({
                 <div className="flex gap-2">
                   <select
                     value={filters.releaseYear?.min || ''}
-                    onChange={(e) => handleFilterChange({ 
-                      releaseYear: { 
-                        ...filters.releaseYear, 
-                        min: e.target.value ? parseInt(e.target.value) : undefined 
-                      } 
+                    onChange={(e) => handleFilterChange({
+                      releaseYear: {
+                        ...filters.releaseYear,
+                        min: e.target.value ? parseInt(e.target.value) : undefined
+                      }
                     })}
                     className="flex-1 p-2 bg-slate-700 border border-slate-600 rounded text-white text-sm"
                   >
@@ -421,11 +443,11 @@ export const AdvancedSearchEngine = ({
                   </select>
                   <select
                     value={filters.releaseYear?.max || ''}
-                    onChange={(e) => handleFilterChange({ 
-                      releaseYear: { 
-                        ...filters.releaseYear, 
-                        max: e.target.value ? parseInt(e.target.value) : undefined 
-                      } 
+                    onChange={(e) => handleFilterChange({
+                      releaseYear: {
+                        ...filters.releaseYear,
+                        max: e.target.value ? parseInt(e.target.value) : undefined
+                      }
                     })}
                     className="flex-1 p-2 bg-slate-700 border border-slate-600 rounded text-white text-sm"
                   >
@@ -446,13 +468,8 @@ export const AdvancedSearchEngine = ({
                     min="0"
                     max="10"
                     step="0.1"
-                    value={filters.rating?.min || ''}
-                    onChange={(e) => handleFilterChange({ 
-                      rating: { 
-                        ...filters.rating, 
-                        min: e.target.value ? parseFloat(e.target.value) : undefined 
-                      } 
-                    })}
+                    value={getRatingMin() || ''}
+                    onChange={(e) => updateRating('min', e.target.value ? parseFloat(e.target.value) : undefined)}
                     placeholder="Min"
                     className="flex-1 p-2 bg-slate-700 border border-slate-600 rounded text-white text-sm"
                   />
@@ -461,13 +478,8 @@ export const AdvancedSearchEngine = ({
                     min="0"
                     max="10"
                     step="0.1"
-                    value={filters.rating?.max || ''}
-                    onChange={(e) => handleFilterChange({ 
-                      rating: { 
-                        ...filters.rating, 
-                        max: e.target.value ? parseFloat(e.target.value) : undefined 
-                      } 
-                    })}
+                    value={getRatingMax() || ''}
+                    onChange={(e) => updateRating('max', e.target.value ? parseFloat(e.target.value) : undefined)}
                     placeholder="Max"
                     className="flex-1 p-2 bg-slate-700 border border-slate-600 rounded text-white text-sm"
                   />

@@ -18,14 +18,14 @@ const shortcuts: Shortcut[] = [
   { key: 'M', description: 'Mute/Unmute', category: 'Media' },
   { key: 'F', description: 'Toggle fullscreen (video)', category: 'Media' },
   { key: 'S', description: 'Toggle settings', category: 'Media' },
-  
+
   // Navigation Shortcuts
   { key: 'Ctrl + H', description: 'Go to Home', category: 'Navigation' },
   { key: 'Ctrl + M', description: 'Go to Movies', category: 'Navigation' },
   { key: 'Ctrl + U', description: 'Go to Music', category: 'Navigation' },
   { key: 'Ctrl + P', description: 'Go to Upload', category: 'Navigation' },
   { key: 'Ctrl + A', description: 'Go to Admin', category: 'Navigation' },
-  
+
   // General Shortcuts
   { key: '/', description: 'Focus search', category: 'General' },
   { key: 'Ctrl + F', description: 'Find/Search', category: 'General' },
@@ -33,10 +33,13 @@ const shortcuts: Shortcut[] = [
   { key: '?', description: 'Show this help', category: 'General' }
 ];
 
-export const KeyboardShortcutsHelp = () => {
-  const [isOpen, setIsOpen] = useState(false);
+interface KeyboardShortcutsHelpProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
 
-  const toggleHelp = () => setIsOpen(!isOpen);
+export const KeyboardShortcutsHelp = ({ isOpen, onClose }: KeyboardShortcutsHelpProps) => {
+
 
   const groupedShortcuts = shortcuts.reduce((acc, shortcut) => {
     if (!acc[shortcut.category]) {
@@ -50,7 +53,7 @@ export const KeyboardShortcutsHelp = () => {
     <>
       {/* Help Button */}
       <button
-        onClick={toggleHelp}
+        onClick={() => onClose()} // Use parent handler if needed, or maybe this button effectively opens it? Wait, the parent controls it.
         className="fixed bottom-4 right-4 z-50 p-3 bg-slate-800 hover:bg-slate-700 text-white rounded-full shadow-lg transition-colors"
         title="Keyboard Shortcuts (?)"
       >
@@ -65,7 +68,7 @@ export const KeyboardShortcutsHelp = () => {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4"
-            onClick={() => setIsOpen(false)}
+            onClick={onClose}
           >
             <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
@@ -80,7 +83,7 @@ export const KeyboardShortcutsHelp = () => {
                   <h2 className="text-2xl font-bold text-white">Keyboard Shortcuts</h2>
                 </div>
                 <button
-                  onClick={() => setIsOpen(false)}
+                  onClick={onClose}
                   className="p-2 text-slate-400 hover:text-white transition-colors"
                 >
                   <X className="w-6 h-6" />
@@ -112,7 +115,7 @@ export const KeyboardShortcutsHelp = () => {
 
               <div className="mt-6 p-4 bg-blue-900/20 border border-blue-500/30 rounded-lg">
                 <p className="text-blue-300 text-sm">
-                  <strong>Tip:</strong> Double-tap on video to skip/rewind 5 minutes. 
+                  <strong>Tip:</strong> Double-tap on video to skip/rewind 5 minutes.
                   Left side rewinds, right side skips forward.
                 </p>
               </div>
