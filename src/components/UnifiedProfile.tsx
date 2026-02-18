@@ -12,8 +12,8 @@ interface UnifiedProfileProps {
   className?: string;
 }
 
-export const UnifiedProfile = ({ 
-  showProfileMenu = true, 
+export const UnifiedProfile = ({
+  showProfileMenu = true,
   showUserInfo = true,
   className = ""
 }: UnifiedProfileProps) => {
@@ -33,12 +33,12 @@ export const UnifiedProfile = ({
 
   const loadProfiles = async () => {
     if (!user) return;
-    
+
     try {
       setLoading(true);
       const userProfiles = await personalizationService.getProfiles(user.id);
       setProfiles(userProfiles);
-      
+
       // Auto-select first profile if available
       if (userProfiles.length > 0 && !selectedProfile) {
         setSelectedProfile(userProfiles[0]);
@@ -74,7 +74,7 @@ export const UnifiedProfile = ({
         whileHover={{ scale: 1.02 }}
         whileTap={{ scale: 0.98 }}
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-3 px-4 py-2 bg-slate-800/50 hover:bg-slate-700/50 border border-slate-700 rounded-lg transition-all"
+        className="flex items-center gap-3 px-4 py-2 bg-white dark:bg-slate-800/50 hover:bg-slate-50 dark:hover:bg-slate-700/50 border border-slate-200 dark:border-slate-700 rounded-lg transition-all shadow-sm dark:shadow-none"
       >
         {/* User Avatar */}
         <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full flex items-center justify-center">
@@ -90,7 +90,7 @@ export const UnifiedProfile = ({
         {/* User Info */}
         {showUserInfo && (
           <div className="flex flex-col items-start">
-            <span className="text-white text-sm font-medium">
+            <span className="text-slate-900 dark:text-white text-sm font-medium">
               {selectedProfile ? selectedProfile.name : user.email?.split('@')[0]}
             </span>
             <div className="flex items-center gap-2">
@@ -110,9 +110,8 @@ export const UnifiedProfile = ({
                   ) : (
                     <User className="w-3 h-3 text-slate-400" />
                   )}
-                  <span className={`text-xs font-medium ${
-                    isAdmin ? 'text-purple-400' : 'text-slate-400'
-                  }`}>
+                  <span className={`text-xs font-medium ${isAdmin ? 'text-purple-400' : 'text-slate-400'
+                    }`}>
                     {isAdmin ? 'Administrator' : 'User'}
                   </span>
                 </div>
@@ -132,10 +131,10 @@ export const UnifiedProfile = ({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -10, scale: 0.95 }}
             transition={{ duration: 0.2 }}
-            className="absolute top-full right-0 mt-2 w-80 bg-slate-800 border border-slate-700 rounded-lg shadow-xl z-50"
+            className="absolute top-full right-0 mt-2 w-80 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-xl z-50 overflow-hidden"
           >
             {/* User Info Header */}
-            <div className="p-4 border-b border-slate-700">
+            <div className="p-4 border-b border-slate-100 dark:border-slate-700">
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full flex items-center justify-center">
                   {selectedProfile ? (
@@ -147,7 +146,7 @@ export const UnifiedProfile = ({
                   )}
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-white font-medium">
+                  <h3 className="text-slate-900 dark:text-white font-medium">
                     {selectedProfile ? selectedProfile.name : user.email?.split('@')[0]}
                   </h3>
                   <p className="text-slate-400 text-sm">
@@ -174,11 +173,10 @@ export const UnifiedProfile = ({
                         ) : (
                           <User className="w-3 h-3 text-slate-400" />
                         )}
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          isAdmin 
-                            ? 'bg-purple-500/20 text-purple-400' 
-                            : 'bg-slate-500/20 text-slate-400'
-                        }`}>
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${isAdmin
+                          ? 'bg-purple-500/20 text-purple-400'
+                          : 'bg-slate-500/20 text-slate-400'
+                          }`}>
                           {isAdmin ? 'Administrator' : 'User'}
                         </span>
                       </div>
@@ -190,18 +188,17 @@ export const UnifiedProfile = ({
 
             {/* Profiles Section */}
             {profiles.length > 0 && (
-              <div className="p-4 border-b border-slate-700">
+              <div className="p-4 border-b border-slate-100 dark:border-slate-700">
                 <h4 className="text-slate-300 text-sm font-medium mb-3">Switch Profile</h4>
                 <div className="space-y-2">
                   {profiles.map((profile) => (
                     <button
                       key={profile.id}
                       onClick={() => handleProfileSelect(profile)}
-                      className={`w-full flex items-center gap-3 p-2 rounded-lg transition-colors ${
-                        selectedProfile?.id === profile.id
-                          ? 'bg-purple-500/20 text-purple-400'
-                          : 'hover:bg-slate-700 text-slate-300'
-                      }`}
+                      className={`w-full flex items-center gap-3 p-2 rounded-lg transition-colors ${selectedProfile?.id === profile.id
+                        ? 'bg-purple-500/20 text-purple-400'
+                        : 'hover:bg-slate-700 text-slate-300'
+                        }`}
                     >
                       <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full flex items-center justify-center">
                         <span className="text-white text-sm font-medium">
@@ -262,7 +259,7 @@ export const UnifiedProfile = ({
                 <span>Settings</span>
               </button>
 
-              <div className="border-t border-slate-700 my-2"></div>
+              <div className="border-t border-slate-100 dark:border-slate-700 my-2"></div>
 
               <button
                 onClick={handleSignOut}

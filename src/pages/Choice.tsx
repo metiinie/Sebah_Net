@@ -1,9 +1,117 @@
-import { motion } from 'framer-motion';
-import { Film, Music, LogOut, Upload, Crown } from 'lucide-react';
+import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion';
+import { Film, Music, LogOut, Upload, Crown, ArrowRight, Play, Mic2, Sparkles } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { RoleIndicator } from '../components/RoleIndicator';
 import { PermissionGuard } from '../components/PermissionGuard';
 import { usePageNavigation } from '../hooks/usePageNavigation';
+import React from 'react';
+
+const StatCard = ({ label, value, icon: Icon, colorClass }: { label: string, value: string, icon: any, colorClass: string }) => (
+  <motion.div
+    whileHover={{ y: -5 }}
+    className="glass-dark p-6 rounded-2xl border border-white/5 flex flex-col items-center text-center group"
+  >
+    <div className={`p-3 rounded-xl bg-white/5 ${colorClass} mb-4 group-hover:scale-110 transition-transform`}>
+      <Icon className="w-6 h-6" />
+    </div>
+    <div className="text-2xl font-bold text-white mb-1">{value}</div>
+    <div className="text-slate-400 text-sm font-medium">{label}</div>
+  </motion.div>
+);
+
+const ChoiceCard = ({
+  title,
+  description,
+  icon: Icon,
+  onClick,
+  gradient,
+  accentColor,
+  delay
+}: {
+  title: string,
+  description: string,
+  icon: any,
+  onClick: () => void,
+  gradient: string,
+  accentColor: string,
+  delay: number
+}) => {
+  const x = useMotionValue(0);
+  const y = useMotionValue(0);
+
+  const mouseXSpring = useSpring(x);
+  const mouseYSpring = useSpring(y);
+
+  const rotateX = useTransform(mouseYSpring, [-0.5, 0.5], ["10deg", "-10deg"]);
+  const rotateY = useTransform(mouseXSpring, [-0.5, 0.5], ["-10deg", "10deg"]);
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const width = rect.width;
+    const height = rect.height;
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+    const xPct = mouseX / width - 0.5;
+    const yPct = mouseY / height - 0.5;
+    x.set(xPct);
+    y.set(yPct);
+  };
+
+  const handleMouseLeave = () => {
+    x.set(0);
+    y.set(0);
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay }}
+      className="perspective-1000"
+    >
+      <motion.div
+        style={{ rotateX, rotateY }}
+        onMouseMove={handleMouseMove}
+        onMouseLeave={handleMouseLeave}
+        onClick={onClick}
+        className={`relative group cursor-pointer overflow-hidden rounded-[2.5rem] bg-slate-900 border border-white/10 p-1 transition-all duration-300 hover:border-${accentColor}-500/50 shadow-2xl hover:shadow-${accentColor}-500/20`}
+      >
+        <div className={`absolute inset-0 bg-gradient-to-br ${gradient} opacity-20 group-hover:opacity-30 transition-opacity`} />
+
+        {/* Badge */}
+        <div className="absolute top-6 right-6 z-20">
+          <div className={`px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-[10px] font-bold text-${accentColor}-400 uppercase tracking-widest`}>
+            {title === "Cinema" ? "Trending" : "Featured"}
+          </div>
+        </div>
+
+        <div className="relative z-10 p-10 md:p-12 h-full flex flex-col">
+          <div className={`mb-8 inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-white/5 border border-white/10 text-${accentColor}-400 group-hover:scale-110 transition-transform duration-500`}>
+            <Icon className="w-10 h-10" />
+          </div>
+
+          <h2 className="text-4xl md:text-5xl font-bold text-white mb-4 tracking-tight">
+            {title}
+          </h2>
+
+          <p className="text-slate-400 text-lg leading-relaxed mb-8 flex-grow">
+            {description}
+          </p>
+
+          <div className="flex items-center gap-3 text-white font-semibold group/btn">
+            <span className={`px-6 py-3 rounded-full bg-white/10 group-hover:bg-${accentColor}-500 transition-colors duration-300 flex items-center gap-2`}>
+              Explore {title}
+              <ArrowRight className="w-5 h-5 group-hover/btn:translate-x-1 transition-transform" />
+            </span>
+          </div>
+        </div>
+
+        {/* Decorative elements */}
+        <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-white/5 rounded-full blur-3xl group-hover:bg-white/10 transition-colors" />
+      </motion.div>
+    </motion.div>
+  );
+};
 
 export const Choice = () => {
   const { goToAuth, goToUpload, goToAdmin, goToMovies, goToMusic } = usePageNavigation();
@@ -15,62 +123,67 @@ export const Choice = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4 md:p-8">
-      <div className="max-w-6xl mx-auto">
+    <div className="min-h-screen mesh-gradient noise-bg selection:bg-purple-500/30 overflow-hidden">
+      <div className="max-w-7xl mx-auto px-6 py-12 md:py-20 lg:py-24 relative z-10">
+        {/* Decorative Background Elements */}
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-[120px] -z-10 animate-pulse" />
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-[120px] -z-10 animate-pulse" style={{ animationDelay: '2s' }} />
+
+        {/* Navbar-like Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex justify-between items-center mb-12"
+          className="flex flex-col md:flex-row justify-between items-start md:items-center gap-8 mb-20"
         >
-          <div className="flex items-center gap-6">
-            
-            <div>
-              <h1 className="text-4xl md:text-5xl font-bold text-white mb-2">
-                Welcome to Combine Site
-              </h1>
-              <p className="text-slate-400 text-lg mb-4">Choose your entertainment experience</p>
+          <div className="flex flex-col gap-2">
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs font-bold text-purple-400 uppercase tracking-widest mb-2"
+            >
+              <Sparkles className="w-3 h-3" />
+              The Ultimate Streaming Hub
+            </motion.div>
+            <h1 className="text-5xl md:text-7xl font-extrabold text-white tracking-tighter">
+              Welcome to <span className="bg-clip-text text-transparent bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400">Combine Site</span>
+            </h1>
+            <div className="flex items-center gap-4 mt-2">
               <RoleIndicator showPermissions={false} size="sm" />
+              <div className="h-1 w-1 rounded-full bg-slate-700" />
+              <p className="text-slate-400 text-lg font-medium">Elevating your entertainment</p>
             </div>
           </div>
-          <div className="flex items-center gap-4">
-            <PermissionGuard permission="upload_movies" fallback={
+
+          <div className="flex flex-wrap items-center gap-3">
+            <PermissionGuard permission="upload_movies">
               <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                disabled
-                className="flex items-center gap-2 px-6 py-2 bg-slate-600 text-slate-400 rounded-lg font-medium cursor-not-allowed opacity-50"
-              >
-                <Upload className="w-4 h-4" />
-                Upload
-              </motion.button>
-            }>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
+                whileHover={{ scale: 1.02, y: -2 }}
+                whileTap={{ scale: 0.98 }}
                 onClick={goToUpload}
-                className="flex items-center gap-2 px-6 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg font-medium transition-colors"
+                className="flex items-center gap-2 px-6 py-3 bg-white/5 hover:bg-white/10 text-white rounded-2xl font-semibold border border-white/10 transition-all shimmer-btn"
               >
-                <Upload className="w-4 h-4" />
+                <Upload className="w-4 h-4 text-emerald-400" />
                 Upload
               </motion.button>
             </PermissionGuard>
-            
-            <PermissionGuard permission="access_admin_panel" fallback={null}>
+
+            <PermissionGuard permission="access_admin_panel">
               <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
+                whileHover={{ scale: 1.02, y: -2 }}
+                whileTap={{ scale: 0.98 }}
                 onClick={goToAdmin}
-                className="flex items-center gap-2 px-6 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-medium transition-colors"
+                className="flex items-center gap-2 px-6 py-3 bg-white/5 hover:bg-white/10 text-white rounded-2xl font-semibold border border-white/10 transition-all shimmer-btn"
               >
-                <Crown className="w-4 h-4" />
+                <Crown className="w-4 h-4 text-amber-400" />
                 Admin Panel
               </motion.button>
             </PermissionGuard>
+
             <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+              whileHover={{ scale: 1.02, y: -2 }}
+              whileTap={{ scale: 0.98 }}
               onClick={handleSignOut}
-              className="flex items-center gap-2 px-6 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-medium transition-colors"
+              className="flex items-center gap-2 px-6 py-3 bg-red-500/10 hover:bg-red-500/20 text-red-100 rounded-2xl font-semibold border border-red-500/20 transition-all"
             >
               <LogOut className="w-4 h-4" />
               Sign Out
@@ -78,93 +191,42 @@ export const Choice = () => {
           </div>
         </motion.div>
 
-        <div className="grid md:grid-cols-2 gap-8">
-          <motion.div
-            initial={{ opacity: 0, x: -50 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.2 }}
-            whileHover={{ scale: 1.02, y: -8 }}
+        {/* Hero Cards Grid */}
+        <div className="grid lg:grid-cols-2 gap-8 md:gap-12 mb-20">
+          <ChoiceCard
+            title="Cinema"
+            description="Experience blockbuster movies and exclusive series with stunning 4K visuals and immersive spatial audio."
+            icon={Film}
             onClick={goToMovies}
-            className="group relative cursor-pointer"
-          >
-            <div className="absolute inset-0 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-3xl blur-xl opacity-50 group-hover:opacity-75 transition-opacity" />
-            <div className="relative bg-gradient-to-br from-slate-800 to-slate-900 rounded-3xl p-12 border border-cyan-500/30 hover:border-cyan-500/60 transition-all overflow-hidden">
-              <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500/10 rounded-full blur-3xl" />
-              <div className="relative z-10">
-                <div className="inline-flex items-center justify-center w-20 h-20 bg-cyan-500/20 rounded-2xl mb-6 group-hover:scale-110 transition-transform">
-                  <Film className="w-10 h-10 text-cyan-400" />
-                </div>
-                <h2 className="text-4xl font-bold text-white mb-4">Movies</h2>
-                <p className="text-slate-300 text-lg mb-6">
-                  Dive into a vast collection of films with stunning visuals and immersive storytelling
-                </p>
-                <div className="flex items-center gap-2 text-cyan-400 font-medium">
-                  Explore Movies
-                  <motion.span
-                    animate={{ x: [0, 5, 0] }}
-                    transition={{ repeat: Infinity, duration: 1.5 }}
-                  >
-                    →
-                  </motion.span>
-                </div>
-              </div>
-            </div>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, x: 50 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.3 }}
-            whileHover={{ scale: 1.02, y: -8 }}
+            gradient="from-blue-600 to-cyan-500"
+            accentColor="cyan"
+            delay={0.2}
+          />
+          <ChoiceCard
+            title="Music"
+            description="Discover millions of high-fidelity tracks, curated playlists, and live performances tailored to your taste."
+            icon={Music}
             onClick={goToMusic}
-            className="group relative cursor-pointer"
-          >
-            <div className="absolute inset-0 bg-gradient-to-br from-pink-500 to-purple-600 rounded-3xl blur-xl opacity-50 group-hover:opacity-75 transition-opacity" />
-            <div className="relative bg-gradient-to-br from-slate-800 to-slate-900 rounded-3xl p-12 border border-pink-500/30 hover:border-pink-500/60 transition-all overflow-hidden">
-              <div className="absolute top-0 right-0 w-64 h-64 bg-pink-500/10 rounded-full blur-3xl" />
-              <div className="relative z-10">
-                <div className="inline-flex items-center justify-center w-20 h-20 bg-pink-500/20 rounded-2xl mb-6 group-hover:scale-110 transition-transform">
-                  <Music className="w-10 h-10 text-pink-400" />
-                </div>
-                <h2 className="text-4xl font-bold text-white mb-4">Music</h2>
-                <p className="text-slate-300 text-lg mb-6">
-                  Stream your favorite tracks, discover new artists, and create personalized playlists
-                </p>
-                <div className="flex items-center gap-2 text-pink-400 font-medium">
-                  Explore Music
-                  <motion.span
-                    animate={{ x: [0, 5, 0] }}
-                    transition={{ repeat: Infinity, duration: 1.5 }}
-                  >
-                    →
-                  </motion.span>
-                </div>
-              </div>
-            </div>
-          </motion.div>
+            gradient="from-purple-600 to-pink-500"
+            accentColor="pink"
+            delay={0.3}
+          />
         </div>
 
+        {/* Stats Section with Glassmorphism */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}
-          className="mt-12 grid grid-cols-3 gap-4 max-w-3xl mx-auto"
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6"
         >
-          {[
-            { label: '10K+ Movies', color: 'cyan' },
-            { label: '50K+ Songs', color: 'pink' },
-            { label: 'HD Streaming', color: 'purple' }
-          ].map((stat, idx) => (
-            <div
-              key={idx}
-              className="bg-slate-800/50 backdrop-blur-lg rounded-xl p-6 border border-slate-700 text-center"
-            >
-              <div className={`text-2xl font-bold text-${stat.color}-400 mb-1`}>
-                {stat.label.split(' ')[0]}
-              </div>
-              <div className="text-slate-400 text-sm">{stat.label.split(' ').slice(1).join(' ')}</div>
-            </div>
-          ))}
+          <div className="lg:col-span-1 flex flex-col justify-center pr-8 mb-4 lg:mb-0 text-center lg:text-left">
+            <h3 className="text-2xl font-bold text-white mb-2">Platform At A Glance</h3>
+            <p className="text-slate-400 text-sm">Real-time statistics from our growing entertainment global network.</p>
+          </div>
+          <StatCard label="Premium Movies" value="12,480" icon={Play} colorClass="text-blue-400" />
+          <StatCard label="Audio Tracks" value="2.5M+" icon={Mic2} colorClass="text-pink-400" />
+          <StatCard label="Global Users" value="850K" icon={Sparkles} colorClass="text-purple-400" />
         </motion.div>
       </div>
     </div>

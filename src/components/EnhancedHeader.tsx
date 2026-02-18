@@ -1,9 +1,8 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { 
-  Sun, 
-  Moon, 
-  Monitor, 
+import {
+  Sun,
+  Moon,
   Keyboard
 } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
@@ -30,24 +29,16 @@ export const EnhancedHeader = () => {
 
 
   const getThemeIcon = () => {
-    switch (theme) {
-      case 'light': return <Sun className="w-4 h-4" />;
-      case 'dark': return <Moon className="w-4 h-4" />;
-      case 'auto': return <Monitor className="w-4 h-4" />;
-    }
+    return theme === 'light' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />;
   };
 
   const getThemeLabel = () => {
-    switch (theme) {
-      case 'light': return 'Light';
-      case 'dark': return 'Dark';
-      case 'auto': return 'Auto';
-    }
+    return theme === 'light' ? 'Light' : 'Dark';
   };
 
   return (
     <>
-      <header className="bg-slate-800/90 backdrop-blur-sm border-b border-slate-700 sticky top-0 z-40">
+      <header className="bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800 sticky top-0 z-40 transition-all duration-300">
         <div className="max-w-7xl mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
             {/* Logo */}
@@ -55,7 +46,7 @@ export const EnhancedHeader = () => {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={goToChoice}
-              className="flex items-center gap-2 text-white font-bold text-xl"
+              className="flex items-center gap-2 text-slate-900 dark:text-white font-bold text-xl"
             >
               <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-blue-500 rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-sm">MS</span>
@@ -68,14 +59,9 @@ export const EnhancedHeader = () => {
               {/* Theme Toggle */}
               <div className="relative">
                 <button
-                  onClick={() => {
-                    const themes: Array<'light' | 'dark' | 'auto'> = ['light', 'dark', 'auto'];
-                    const currentIndex = themes.indexOf(theme);
-                    const nextIndex = (currentIndex + 1) % themes.length;
-                    setTheme(themes[nextIndex]);
-                  }}
-                  className="p-2 text-slate-400 hover:text-white transition-colors rounded-lg hover:bg-slate-700"
-                  title={`Current theme: ${getThemeLabel()}`}
+                  onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
+                  className="p-2 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700"
+                  title={`Switch to ${theme === 'light' ? 'Dark' : 'Light'} Mode`}
                 >
                   {getThemeIcon()}
                 </button>
@@ -84,7 +70,7 @@ export const EnhancedHeader = () => {
               {/* Keyboard Shortcuts */}
               <button
                 onClick={() => setShowShortcuts(true)}
-                className="p-2 text-slate-400 hover:text-white transition-colors rounded-lg hover:bg-slate-700"
+                className="p-2 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700"
                 title="Keyboard Shortcuts (?)"
               >
                 <Keyboard className="w-4 h-4" />
@@ -101,9 +87,9 @@ export const EnhancedHeader = () => {
       </header>
 
       {/* Keyboard Shortcuts Modal */}
-      <KeyboardShortcutsHelp 
-        isOpen={showShortcuts} 
-        onClose={() => setShowShortcuts(false)} 
+      <KeyboardShortcutsHelp
+        isOpen={showShortcuts}
+        onClose={() => setShowShortcuts(false)}
       />
 
     </>
