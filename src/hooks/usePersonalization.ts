@@ -32,7 +32,7 @@ export const usePersonalization = (options: UsePersonalizationOptions = {}) => {
       setError(null);
       const userProfiles = await personalizationService.getProfiles(user.id);
       setProfiles(userProfiles);
-      
+
       // Auto-select first profile if available and autoLoadProfile is enabled
       if (autoLoadProfile && userProfiles.length > 0 && !selectedProfile) {
         setSelectedProfile(userProfiles[0]);
@@ -58,7 +58,7 @@ export const usePersonalization = (options: UsePersonalizationOptions = {}) => {
   // Check if content is allowed for current profile
   const isContentAllowed = useCallback(async (contentId: string, contentType: 'movie' | 'music'): Promise<boolean> => {
     if (!selectedProfile) return true;
-    
+
     try {
       return await personalizationService.isContentAllowed(selectedProfile.id, contentId, contentType);
     } catch (err) {
@@ -199,7 +199,7 @@ export const usePersonalization = (options: UsePersonalizationOptions = {}) => {
     try {
       const continueWatching = await personalizationService.getContinueWatching(selectedProfile.id);
       const item = continueWatching.find(item => item.content_id === contentId);
-      return item ? item.current_time : null;
+      return item ? item.playback_time : null;
     } catch (err) {
       console.error('Error getting resume time:', err);
       return null;
@@ -217,26 +217,26 @@ export const usePersonalization = (options: UsePersonalizationOptions = {}) => {
     selectedProfile,
     loading,
     error,
-    
+
     // Actions
     selectProfile,
     loadProfiles,
-    
+
     // Preferences
     getViewingPreferences,
     isContentAllowed,
-    
+
     // Watchlist
     addToWatchlist,
     removeFromWatchlist,
     getWatchlist,
     isInWatchlist,
-    
+
     // Continue Watching
     updateContinueWatching,
     getContinueWatching,
     getResumeTime,
-    
+
     // Recently Watched
     addToRecentlyWatched,
     getRecentlyWatched,

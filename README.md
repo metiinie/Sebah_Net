@@ -174,15 +174,16 @@ VITE_SUPABASE_ANON_KEY=ey... (anon public key)
 4. **Database Setup**
 Run the consolidated migration:
 ```bash
-supabase/migrations/20251010000003_simple_tables_only.sql
+supabase/migrations/20260218000000_complete_schema.sql
 ```
 
-This creates all necessary tables, policies, and functions:
-- `profiles`, `movies`, `music`, `uploads`, `rate_limits`, `audit_logs`
-- Row Level Security (RLS) policies for role-based access
-- Admin-only upload permissions for movies and music
-- Rate limiting (50 uploads per hour)
-- Security audit logging
+This creates all necessary tables, policies, and functions in a single step:
+- `movies`, `music`, `user_profiles`, `watchlist`, `recently_watched`, `continue_watching`, `personalized_carousels`, `parental_controls`, `user_preferences`, `content_ratings`, `admin_audit_log`
+- Row Level Security (RLS) policies for secure access
+- Admin-only management for media content
+- Storage bucket configuration for 'media'
+- Sample data to get started
+
 
 ### **Development**
 

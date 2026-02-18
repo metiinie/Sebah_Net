@@ -52,7 +52,7 @@ export interface ContinueWatching {
   profile_id: string;
   content_id: string;
   content_type: 'movie' | 'music';
-  current_time: number;
+  playback_time: number;
   total_duration: number;
   last_watched: string;
   device_info: string;
@@ -235,7 +235,7 @@ class PersonalizationService {
     profileId: string,
     contentId: string,
     contentType: 'movie' | 'music',
-    currentTime: number,
+    playbackTime: number,
     totalDuration: number,
     deviceInfo: string,
     sessionId: string
@@ -253,7 +253,7 @@ class PersonalizationService {
       const { data, error } = await supabase
         .from('continue_watching')
         .update({
-          current_time: currentTime,
+          playback_time: playbackTime,
           total_duration: totalDuration,
           last_watched: new Date().toISOString(),
           device_info: deviceInfo,
@@ -273,7 +273,7 @@ class PersonalizationService {
           profile_id: profileId,
           content_id: contentId,
           content_type: contentType,
-          current_time: currentTime,
+          playback_time: playbackTime,
           total_duration: totalDuration,
           device_info: deviceInfo,
           session_id: sessionId,

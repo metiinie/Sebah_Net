@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { 
-  Play, 
-  Clock, 
-  Monitor, 
-  Smartphone, 
-  Tablet, 
+import {
+  Play,
+  Clock,
+  Monitor,
+  Smartphone,
+  Tablet,
   Tv,
   RotateCcw,
   Trash2,
@@ -119,7 +119,7 @@ export const ContinueWatching: React.FC<ContinueWatchingProps> = ({
   const formatDuration = (seconds: number) => {
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
-    
+
     if (hours > 0) {
       return `${hours}h ${minutes}m`;
     }
@@ -130,7 +130,7 @@ export const ContinueWatching: React.FC<ContinueWatchingProps> = ({
     const now = new Date();
     const date = new Date(dateString);
     const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
-    
+
     if (diffInHours < 1) {
       return 'Just now';
     } else if (diffInHours < 24) {
@@ -141,12 +141,12 @@ export const ContinueWatching: React.FC<ContinueWatchingProps> = ({
     }
   };
 
-  const getProgressPercentage = (currentTime: number, totalDuration: number) => {
-    return Math.min((currentTime / totalDuration) * 100, 100);
+  const getProgressPercentage = (playbackTime: number, totalDuration: number) => {
+    return Math.min((playbackTime / totalDuration) * 100, 100);
   };
 
-  const getRemainingTime = (currentTime: number, totalDuration: number) => {
-    const remaining = totalDuration - currentTime;
+  const getRemainingTime = (playbackTime: number, totalDuration: number) => {
+    const remaining = totalDuration - playbackTime;
     return formatDuration(remaining);
   };
 
@@ -192,8 +192,8 @@ export const ContinueWatching: React.FC<ContinueWatchingProps> = ({
           const contentItem = contentItems.find(c => c.id === item.content_id);
           if (!contentItem) return null;
 
-          const progressPercentage = getProgressPercentage(item.current_time, item.total_duration);
-          const remainingTime = getRemainingTime(item.current_time, item.total_duration);
+          const progressPercentage = getProgressPercentage(item.playback_time, item.total_duration);
+          const remainingTime = getRemainingTime(item.playback_time, item.total_duration);
 
           return (
             <motion.div
@@ -219,25 +219,25 @@ export const ContinueWatching: React.FC<ContinueWatchingProps> = ({
                     )}
                   </div>
                 )}
-                
+
                 {/* Progress Bar */}
                 <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/20">
-                  <div 
+                  <div
                     className="h-full bg-blue-500 transition-all duration-300"
                     style={{ width: `${progressPercentage}%` }}
                   />
                 </div>
-                
+
                 {/* Overlay */}
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors duration-300 flex items-center justify-center">
                   <button
-                    onClick={() => onPlayContent?.(contentItem.id, contentItem.type, item.current_time)}
+                    onClick={() => onPlayContent?.(contentItem.id, contentItem.type, item.playback_time)}
                     className="opacity-0 group-hover:opacity-100 transform scale-75 group-hover:scale-100 transition-all duration-300 bg-white/90 hover:bg-white rounded-full p-3"
                   >
                     <Play className="w-6 h-6 text-gray-900 ml-1" />
                   </button>
                 </div>
-                
+
                 {/* Remove Button */}
                 <button
                   onClick={() => handleRemoveFromContinueWatching(item.content_id)}
@@ -246,30 +246,30 @@ export const ContinueWatching: React.FC<ContinueWatchingProps> = ({
                   <Trash2 className="w-4 h-4" />
                 </button>
               </div>
-              
+
               {/* Content Info */}
               <div className="p-4">
                 <h3 className="font-semibold text-gray-900 dark:text-white mb-1 line-clamp-2">
                   {contentItem.title}
                 </h3>
-                
+
                 {contentItem.type === 'music' && contentItem.artist && (
                   <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
                     by {contentItem.artist}
                   </p>
                 )}
-                
+
                 {/* Progress Info */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-gray-500 dark:text-gray-400">
-                      {formatDuration(item.current_time)} / {formatDuration(item.total_duration)}
+                      {formatDuration(item.playback_time)} / {formatDuration(item.total_duration)}
                     </span>
                     <span className="text-gray-500 dark:text-gray-400">
                       {remainingTime} left
                     </span>
                   </div>
-                  
+
                   <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
                     <div className="flex items-center space-x-1">
                       {getDeviceIcon(item.device_info)}
@@ -278,17 +278,17 @@ export const ContinueWatching: React.FC<ContinueWatchingProps> = ({
                     <span>{formatTimeAgo(item.last_watched)}</span>
                   </div>
                 </div>
-                
+
                 {/* Action Buttons */}
                 <div className="flex items-center space-x-2 mt-3">
                   <button
-                    onClick={() => onPlayContent?.(contentItem.id, contentItem.type, item.current_time)}
+                    onClick={() => onPlayContent?.(contentItem.id, contentItem.type, item.playback_time)}
                     className="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-sm py-2 px-3 rounded-lg transition-colors flex items-center justify-center space-x-1"
                   >
                     <Play className="w-4 h-4" />
                     <span>Resume</span>
                   </button>
-                  
+
                   <button
                     onClick={() => onPlayContent?.(contentItem.id, contentItem.type, 0)}
                     className="px-3 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 text-sm border border-gray-300 dark:border-gray-600 rounded-lg transition-colors"
