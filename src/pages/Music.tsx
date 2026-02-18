@@ -336,7 +336,10 @@ export const Music = () => {
               externalRef={audioRef}
               onTimeUpdate={handleTimeUpdate}
               onLoadedMetadata={handleLoadedMetadata}
-              onError={handleAudioError}
+              onError={(e: any) => {
+                console.error('Audio playback error:', e);
+                handleAudioError();
+              }}
               onLoadStart={handleAudioLoadStart}
               onCanPlay={handleAudioCanPlay}
               onEnded={() => {
@@ -345,7 +348,6 @@ export const Music = () => {
               }}
               autoPlay={isPlaying}
               preload="metadata"
-              crossOrigin="anonymous"
               audioTracks={[
                 { id: 'default', label: 'Default', language: 'en', url: '' },
                 { id: 'en', label: 'English', language: 'en', url: '' },

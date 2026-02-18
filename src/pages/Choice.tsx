@@ -1,5 +1,5 @@
 import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion';
-import { Film, Music, LogOut, Upload, Crown, ArrowRight, Play, Mic2, Sparkles } from 'lucide-react';
+import { Film, Music, Upload, Crown, ArrowRight, Play, Mic2, Sparkles } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { RoleIndicator } from '../components/RoleIndicator';
 import { PermissionGuard } from '../components/PermissionGuard';
@@ -136,22 +136,9 @@ export const Choice = () => {
           className="flex flex-col md:flex-row justify-between items-start md:items-center gap-8 mb-20"
         >
           <div className="flex flex-col gap-2">
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs font-bold text-purple-400 uppercase tracking-widest mb-2"
-            >
-              <Sparkles className="w-3 h-3" />
-              The Ultimate Streaming Hub
-            </motion.div>
             <h1 className="text-5xl md:text-7xl font-extrabold text-white tracking-tighter">
-              Welcome to <span className="bg-clip-text text-transparent bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400">Combine Site</span>
+              Choice <span className="bg-clip-text text-transparent bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400">Your Destination</span>
             </h1>
-            <div className="flex items-center gap-4 mt-2">
-              <RoleIndicator showPermissions={false} size="sm" />
-              <div className="h-1 w-1 rounded-full bg-slate-700" />
-              <p className="text-slate-400 text-lg font-medium">Elevating your entertainment</p>
-            </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
@@ -179,15 +166,6 @@ export const Choice = () => {
               </motion.button>
             </PermissionGuard>
 
-            <motion.button
-              whileHover={{ scale: 1.02, y: -2 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={handleSignOut}
-              className="flex items-center gap-2 px-6 py-3 bg-red-500/10 hover:bg-red-500/20 text-red-100 rounded-2xl font-semibold border border-red-500/20 transition-all"
-            >
-              <LogOut className="w-4 h-4" />
-              Sign Out
-            </motion.button>
           </div>
         </motion.div>
 

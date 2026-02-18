@@ -1,13 +1,13 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Play, 
-  Pause, 
-  SkipForward, 
-  SkipBack, 
-  Volume2, 
-  VolumeX, 
-  Maximize, 
+import {
+  Play,
+  Pause,
+  SkipForward,
+  SkipBack,
+  Volume2,
+  VolumeX,
+  Maximize,
   Minimize,
   Settings,
   Repeat,
@@ -84,7 +84,7 @@ interface MediaPlayerProps {
   externalRef?: React.RefObject<HTMLAudioElement | HTMLVideoElement>;
   onTimeUpdate?: () => void;
   onLoadedMetadata?: () => void;
-  onError?: () => void;
+  onError?: (e: React.SyntheticEvent<HTMLVideoElement | HTMLAudioElement, Event>) => void;
   onLoadStart?: () => void;
   onCanPlay?: () => void;
   onEnded?: () => void;
@@ -139,7 +139,7 @@ export const SmartMediaPlayer = ({
   const progressRef = useRef<HTMLDivElement>(null);
   const hlsRef = useRef<import('hls.js').default | null>(null);
   const dashRef = useRef<unknown>(null);
-  
+
   // Basic player state
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -169,7 +169,7 @@ export const SmartMediaPlayer = ({
   const [showSubtitleMenu, setShowSubtitleMenu] = useState(false);
   const [showAudioMenu, setShowAudioMenu] = useState(false);
   const [adaptiveBitrateEnabled, setAdaptiveBitrateEnabled] = useState(enableAdaptiveBitrate);
-  
+
   // Cover page state
   const [showCoverPage, setShowCoverPage] = useState(true);
   const [coverPageTime, setCoverPageTime] = useState(0);
@@ -221,7 +221,7 @@ export const SmartMediaPlayer = ({
     };
 
     loadStreamingLibraries();
-    
+
     // Cleanup function
     return () => {
       if (hlsRef.current) {
@@ -251,7 +251,7 @@ export const SmartMediaPlayer = ({
     const id = contentId || title;
     if (enableResume && id && currentTime > 10) {
       localStorage.setItem(`resume_${id}`, currentTime.toString());
-      
+
       // Update continue watching in personalization
       if (personalization.selectedProfile && mediaDuration > 0) {
         const deviceInfo = navigator.userAgent;
@@ -303,7 +303,7 @@ export const SmartMediaPlayer = ({
         setPlaybackRate(preferences.playback_speed);
         setSelectedQuality(preferences.preferred_quality);
         setSelectedSubtitle(preferences.closed_captions ? 'en' : 'none');
-        
+
         // Apply theme if needed (this would typically be handled at app level)
         if (preferences.theme && preferences.theme !== 'auto') {
           document.documentElement.setAttribute('data-theme', preferences.theme);
@@ -477,7 +477,7 @@ export const SmartMediaPlayer = ({
       setCurrentTime(time);
       saveProgress();
       onTimeUpdate?.();
-      
+
       // Handle cover page logic
       if (showCoverPage && type === 'video') {
         setCoverPageTime(time);
@@ -492,13 +492,13 @@ export const SmartMediaPlayer = ({
   const handleLoadedMetadata = useCallback(() => {
     if (mediaElement) {
       setMediaDuration(mediaElement.duration);
-      
+
       // Resume from saved time
       if (resumeTime > 0 && enableResume) {
         mediaElement.currentTime = resumeTime;
         setResumeTime(0);
       }
-      
+
       onLoadedMetadata?.();
     }
   }, [mediaElement, resumeTime, enableResume, onLoadedMetadata]);
@@ -507,7 +507,7 @@ export const SmartMediaPlayer = ({
     if (mediaElement && mediaElement.buffered.length > 0) {
       const bufferedEnd = mediaElement.buffered.end(mediaElement.buffered.length - 1);
       const progress = (bufferedEnd / mediaElement.duration) * 100;
-      
+
       // Track buffering events
       if (progress < 100 && isPlaying) {
         analytics.trackBufferEvent(1000, 'network', selectedQuality);
@@ -572,7 +572,7 @@ export const SmartMediaPlayer = ({
   const handleQualityChange = useCallback((qualityId: string) => {
     setSelectedQuality(qualityId);
     setShowQualityMenu(false);
-    
+
     if (qualityId === 'auto') {
       // Enable adaptive bitrate
       setAdaptiveBitrateEnabled(true);
@@ -582,7 +582,7 @@ export const SmartMediaPlayer = ({
       if (quality && mediaElement) {
         mediaElement.src = quality.url;
         mediaElement.load();
-        
+
         // Track quality switch in analytics
         analytics.trackQualitySwitch(qualityId, quality.bitrate, quality.height.toString());
       }
@@ -592,7 +592,7 @@ export const SmartMediaPlayer = ({
   const handleSubtitleChange = useCallback((subtitleId: string) => {
     setSelectedSubtitle(subtitleId);
     setShowSubtitleMenu(false);
-    
+
     if (subtitleId === 'none') {
       // Remove all subtitle tracks
       if (mediaElement) {
@@ -615,7 +615,7 @@ export const SmartMediaPlayer = ({
   const handleAudioTrackChange = useCallback((audioId: string) => {
     setSelectedAudioTrack(audioId);
     setShowAudioMenu(false);
-    
+
     if (audioId === 'default') {
       // Use default audio track
       if (mediaElement && 'audioTracks' in mediaElement) {
@@ -711,16 +711,16 @@ export const SmartMediaPlayer = ({
         handleCoverPagePlay();
         return;
       }
-      
+
       if (mediaElement && type === 'video' && isVideoReady && mediaElement.duration && !isNaN(mediaElement.duration)) {
         const rect = e.currentTarget.getBoundingClientRect();
         const clickX = e.clientX - rect.left;
         const videoWidth = rect.width;
-        
+
         if (videoWidth > 0) {
           const clickPercentage = clickX / videoWidth;
           const newTime = clickPercentage * mediaElement.duration;
-          
+
           if (newTime >= 0 && newTime <= mediaElement.duration && !isNaN(newTime)) {
             mediaElement.currentTime = newTime;
             setCurrentTime(newTime);
@@ -738,11 +738,11 @@ export const SmartMediaPlayer = ({
         const rect = e.currentTarget.getBoundingClientRect();
         const mouseX = e.clientX - rect.left;
         const videoWidth = rect.width;
-        
+
         if (videoWidth > 0) {
           const hoverPercentage = mouseX / videoWidth;
           const hoverTime = hoverPercentage * mediaElement.duration;
-          
+
           if (!isNaN(hoverTime)) {
             setSeekTime(hoverTime);
             setSeekPosition({ x: e.clientX, y: e.clientY });
@@ -770,7 +770,7 @@ export const SmartMediaPlayer = ({
           {artist && <p className="text-slate-400 text-sm truncate">{artist}</p>}
           {album && <p className="text-slate-300 text-xs truncate">{album}</p>}
         </div>
-        
+
         {/* Advanced action buttons */}
         <div className="flex items-center gap-2 ml-4">
           {/* Network Quality Indicator */}
@@ -789,9 +789,8 @@ export const SmartMediaPlayer = ({
           {enableAdaptiveBitrate && (
             <button
               onClick={() => setAdaptiveBitrateEnabled(!adaptiveBitrateEnabled)}
-              className={`p-2 rounded-lg transition-colors ${
-                adaptiveBitrateEnabled ? 'bg-green-600 text-white' : 'text-slate-400 hover:text-white'
-              }`}
+              className={`p-2 rounded-lg transition-colors ${adaptiveBitrateEnabled ? 'bg-green-600 text-white' : 'text-slate-400 hover:text-white'
+                }`}
               title="Adaptive Bitrate"
             >
               <Monitor className="w-4 h-4" />
@@ -807,7 +806,7 @@ export const SmartMediaPlayer = ({
             >
               <Settings className="w-5 h-5" />
             </button>
-            
+
             <AnimatePresence>
               {showSettings && (
                 <motion.div
@@ -832,7 +831,7 @@ export const SmartMediaPlayer = ({
                         <option value={2}>2x</option>
                       </select>
                     </div>
-                    
+
                     {/* Quality Selection */}
                     {qualityLevels.length > 0 && (
                       <div>
@@ -900,7 +899,7 @@ export const SmartMediaPlayer = ({
             onClick={async () => {
               const newLikedState = !isLiked;
               setIsLiked(newLikedState);
-              
+
               // Add/remove from watchlist
               const id = contentId || title;
               if (id && personalization.selectedProfile) {
@@ -910,17 +909,16 @@ export const SmartMediaPlayer = ({
                   await personalization.removeFromWatchlist(id);
                 }
               }
-              
+
               onLike?.();
             }}
-            className={`p-2 transition-colors ${
-              isLiked ? 'text-red-500' : 'text-slate-400 hover:text-white'
-            }`}
+            className={`p-2 transition-colors ${isLiked ? 'text-red-500' : 'text-slate-400 hover:text-white'
+              }`}
             title={isLiked ? "Remove from Watchlist" : "Add to Watchlist"}
           >
             <Heart className={`w-5 h-5 ${isLiked ? 'fill-current' : ''}`} />
           </button>
-          
+
           {/* Share */}
           <button
             onClick={() => {
@@ -944,7 +942,7 @@ export const SmartMediaPlayer = ({
           >
             <Share2 className="w-5 h-5" />
           </button>
-          
+
           {/* Download */}
           <button
             onClick={() => {
@@ -980,7 +978,7 @@ export const SmartMediaPlayer = ({
               onError={(e) => {
                 const video = e.currentTarget;
                 console.error(`Video failed to load: ${video.error?.message || 'Unknown error'}`);
-                onError?.();
+                onError?.(e);
               }}
               onLoadStart={() => {
                 setIsVideoReady(false);
@@ -1005,7 +1003,7 @@ export const SmartMediaPlayer = ({
               playsInline
               muted={showCoverPage}
             />
-            
+
             {/* Seek Preview Overlay */}
             <AnimatePresence>
               {showSeekPreview && (
@@ -1027,7 +1025,7 @@ export const SmartMediaPlayer = ({
                 </motion.div>
               )}
             </AnimatePresence>
-            
+
             {/* Seek Progress Indicator */}
             <AnimatePresence>
               {showSeekPreview && (
@@ -1117,7 +1115,6 @@ export const SmartMediaPlayer = ({
             onCanPlay={onCanPlay}
             autoPlay={autoPlay}
             preload={preload}
-              crossOrigin={(crossOrigin as "anonymous" | "use-credentials" | "")}
             className="hidden"
           />
           <div className="flex items-center gap-4 mb-4">
@@ -1135,20 +1132,19 @@ export const SmartMediaPlayer = ({
       <div className={`${type === 'video' ? 'mb-2' : 'mb-4'}`}>
         <div
           ref={progressRef}
-          className={`w-full bg-slate-700 rounded-full cursor-pointer transition-all duration-200 relative ${
-            type === 'video' ? 'h-2 hover:h-3' : 'h-3 hover:h-4'
-          }`}
+          className={`w-full bg-slate-700 rounded-full cursor-pointer transition-all duration-200 relative ${type === 'video' ? 'h-2 hover:h-3' : 'h-3 hover:h-4'
+            }`}
           onClick={(e) => {
             try {
               if (mediaElement && progressRef.current && isVideoReady && mediaElement.duration && !isNaN(mediaElement.duration)) {
                 const rect = progressRef.current.getBoundingClientRect();
                 const clickX = e.clientX - rect.left;
                 const progressWidth = rect.width;
-                
+
                 if (progressWidth > 0) {
                   const clickPercentage = clickX / progressWidth;
                   const newTime = clickPercentage * mediaElement.duration;
-                  
+
                   if (newTime >= 0 && newTime <= mediaElement.duration && !isNaN(newTime)) {
                     mediaElement.currentTime = newTime;
                     setCurrentTime(newTime);
@@ -1172,28 +1168,25 @@ export const SmartMediaPlayer = ({
             />
           )}
         </div>
-        <div className={`flex justify-between text-slate-300 ${
-          type === 'video' ? 'text-xs mt-1' : 'text-sm mt-2'
-        }`}>
+        <div className={`flex justify-between text-slate-300 ${type === 'video' ? 'text-xs mt-1' : 'text-sm mt-2'
+          }`}>
           <span className="font-medium">{formatTime(currentTime)}</span>
           <span className="font-medium">{formatTime(mediaDuration)}</span>
         </div>
       </div>
 
       {/* Enhanced Controls - Compact for video */}
-      <div className={`flex items-center justify-between bg-slate-800/50 rounded-lg ${
-        type === 'video' ? 'p-2' : 'p-4'
-      }`}>
+      <div className={`flex items-center justify-between bg-slate-800/50 rounded-lg ${type === 'video' ? 'p-2' : 'p-4'
+        }`}>
         <div className="flex items-center gap-3">
           <button
             onClick={() => setIsShuffle(!isShuffle)}
-            className={`${type === 'video' ? 'p-1' : 'p-2'} rounded-lg transition-colors ${
-              isShuffle ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-white'
-            }`}
+            className={`${type === 'video' ? 'p-1' : 'p-2'} rounded-lg transition-colors ${isShuffle ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-white'
+              }`}
           >
             <Shuffle className={`${type === 'video' ? 'w-3 h-3' : 'w-4 h-4'}`} />
           </button>
-          
+
           <button
             onClick={() => {
               if (mediaElement) {
@@ -1205,7 +1198,7 @@ export const SmartMediaPlayer = ({
           >
             <Rewind className={`${type === 'video' ? 'w-3 h-3' : 'w-4 h-4'}`} />
           </button>
-          
+
           <button
             onClick={onPrevious}
             className="p-2 text-slate-400 hover:text-white transition-colors"
@@ -1213,14 +1206,14 @@ export const SmartMediaPlayer = ({
           >
             <SkipBack className="w-5 h-5" />
           </button>
-          
+
           <button
             onClick={togglePlay}
             className="p-4 bg-purple-600 hover:bg-purple-700 text-white rounded-full transition-all duration-200 hover:scale-110 shadow-lg"
           >
             {isPlaying ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6 ml-0.5" />}
           </button>
-          
+
           <button
             onClick={() => {
               if (mediaElement) {
@@ -1234,7 +1227,7 @@ export const SmartMediaPlayer = ({
           >
             <Square className="w-4 h-4" />
           </button>
-          
+
           <button
             onClick={onNext}
             className="p-2 text-slate-400 hover:text-white transition-colors"
@@ -1242,7 +1235,7 @@ export const SmartMediaPlayer = ({
           >
             <SkipForward className="w-5 h-5" />
           </button>
-          
+
           <button
             onClick={() => {
               if (mediaElement) {
@@ -1254,12 +1247,11 @@ export const SmartMediaPlayer = ({
           >
             <FastForward className="w-4 h-4" />
           </button>
-          
+
           <button
             onClick={() => setIsRepeat(!isRepeat)}
-            className={`p-2 rounded-lg transition-colors ${
-              isRepeat ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-white'
-            }`}
+            className={`p-2 rounded-lg transition-colors ${isRepeat ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-white'
+              }`}
           >
             <Repeat className="w-4 h-4" />
           </button>
@@ -1280,7 +1272,7 @@ export const SmartMediaPlayer = ({
                 <Volume2 className="w-5 h-5" />
               )}
             </button>
-            
+
             <AnimatePresence>
               {showVolumeSlider && (
                 <motion.div
@@ -1311,9 +1303,8 @@ export const SmartMediaPlayer = ({
           {type === 'video' && enablePiP && (
             <button
               onClick={togglePictureInPicture}
-              className={`p-2 transition-colors ${
-                isPiPActive ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'
-              }`}
+              className={`p-2 transition-colors ${isPiPActive ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'
+                }`}
               title="Picture-in-Picture"
             >
               <PictureInPicture className="w-5 h-5" />
