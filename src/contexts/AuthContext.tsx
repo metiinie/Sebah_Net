@@ -52,20 +52,32 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         throw new Error('Password must be at least 8 characters long');
       }
 
-      const { error: authError } = await supabase.auth.signUp({
+      const { data, error: authError } = await supabase.auth.signUp({
         email: email.toLowerCase().trim(),
         password,
       });
 
       if (authError) {
         console.error('Auth signup error:', authError);
-        
+
+        // Handle specific Supabase error for existing user if it returns one
+        if (authError.message.toLowerCase().includes('already registered') ||
+          authError.message.toLowerCase().includes('already exists')) {
+          throw new Error('This email is already registered. Please login instead.');
+        }
+
         // Handle rate limiting specifically
         if (authError.message.includes('For security purposes')) {
-          throw new Error('Please wait a moment before trying again. Too many signup attempts.');
+          throw new Error('Too many attempts. Please wait a moment before trying again.');
         }
-        
+
         throw authError;
+      }
+
+      // Supabase behavior: if email confirmation is enabled and user exists, 
+      // signUp returns a user but with an empty identities array.
+      if (data.user && data.user.identities && data.user.identities.length === 0) {
+        throw new Error('This email is already registered. Please login instead.');
       }
 
       toast.success('Account created successfully!');
