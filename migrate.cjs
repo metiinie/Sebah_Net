@@ -5,7 +5,7 @@ const path = require('path');
 // THE DATABASE URL
 const DB_HOST = 'db.gbnabqwndvkrfhxyakux.supabase.co';
 const DB_IP = '2a05:d018:135e:1649:9156:c85a:bdd3:fc12';
-const DB_PASSWORD = 'uTf6wtuNoH9Bj8Uj';
+const DB_PASSWORD = 'TbnjFenTQC48GwB1';
 const DB_USER = 'postgres';
 const DB_NAME = 'postgres';
 const PROJECT_REF = 'gbnabqwndvkrfhxyakux';
