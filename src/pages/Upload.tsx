@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { 
-  Check, 
+import {
+  Check,
   ArrowLeft,
   Film,
   Music,
@@ -44,7 +44,7 @@ interface MusicMetadata {
 export default function Upload() {
   const { goToChoice, goToMovies, goToMusic } = usePageNavigation();
   const { canUpload, isAdmin } = usePermissions();
-  
+
   const [uploadType, setUploadType] = useState<'movie' | 'music' | null>(null);
   const [uploads, setUploads] = useState<UploadProgress[]>([]);
   const [isUploading, setIsUploading] = useState(false);
@@ -94,38 +94,51 @@ export default function Upload() {
       const video = document.createElement('video');
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
-      
-      video.addEventListener('loadedmetadata', () => {
-        // Set canvas size to video dimensions
+      const timeout = setTimeout(() => {
+        cleanup();
+        resolve(null);
+      }, 5000);
+
+      const cleanup = () => {
+        clearTimeout(timeout);
+        video.removeEventListener('loadedmetadata', handleMetadata);
+        video.removeEventListener('seeked', handleSeeked);
+        video.removeEventListener('error', handleError);
+        URL.revokeObjectURL(video.src);
+      };
+
+      const handleMetadata = () => {
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
-        
-        // Seek to 1 second
         video.currentTime = 1;
-      });
-      
-      video.addEventListener('seeked', () => {
+      };
+
+      const handleSeeked = () => {
         if (ctx) {
-          // Draw the video frame to canvas
           ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-          
-          // Convert to blob and create URL
           canvas.toBlob((blob) => {
+            cleanup();
             if (blob) {
-              const thumbnailUrl = URL.createObjectURL(blob);
-              resolve(thumbnailUrl);
+              resolve(URL.createObjectURL(blob));
             } else {
               resolve(null);
             }
           }, 'image/jpeg', 0.8);
+        } else {
+          cleanup();
+          resolve(null);
         }
-      });
-      
-      video.addEventListener('error', () => {
+      };
+
+      const handleError = () => {
+        cleanup();
         resolve(null);
-      });
-      
-      // Load the video file
+      };
+
+      video.addEventListener('loadedmetadata', handleMetadata);
+      video.addEventListener('seeked', handleSeeked);
+      video.addEventListener('error', handleError);
+
       video.src = URL.createObjectURL(file);
       video.load();
     });
@@ -135,28 +148,28 @@ export default function Upload() {
     return new Promise((resolve) => {
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
-      
+
       // Set canvas size
       canvas.width = 400;
       canvas.height = 400;
-      
+
       if (ctx) {
         // Create gradient background
         const gradient = ctx.createLinearGradient(0, 0, 400, 400);
         gradient.addColorStop(0, '#8B5CF6');
         gradient.addColorStop(1, '#3B82F6');
-        
+
         // Fill background
         ctx.fillStyle = gradient;
         ctx.fillRect(0, 0, 400, 400);
-        
+
         // Draw music note
         ctx.fillStyle = 'white';
         ctx.font = '200px Arial';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText('♪', 200, 200);
-        
+
         // Convert to blob and create URL
         canvas.toBlob((blob) => {
           if (blob) {
@@ -172,35 +185,51 @@ export default function Upload() {
     });
   }, []);
 
-  const uploadFile = useCallback(async (file: File) => {
+  const uploadFile = useCallback(async (file: File, onProgress: (progress: number) => void) => {
     try {
       const fileExt = file.name.split('.').pop();
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
       const filePath = `${uploadType}/${fileName}`;
 
-      // Upload to storage
-      const { error: uploadError } = await supabase.storage
+      // Run storage upload and thumbnail generation in parallel for maximum speed
+      const uploadPromise = supabase.storage
         .from('media')
-        .upload(filePath, file);
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false,
+          onUploadProgress: (progress: any) => {
+            const percentage = (progress.loaded / progress.total) * 100;
+            onProgress(percentage);
+          },
+        } as any);
+
+      const thumbnailPromise = (async () => {
+        try {
+          if (uploadType === 'movie') {
+            return await generateVideoThumbnail(file);
+          } else if (uploadType === 'music') {
+            return await generateMusicIcon();
+          }
+        } catch (err) {
+          console.warn('Thumbnail generation failed:', err);
+        }
+        return null;
+      })();
+
+      const [{ error: uploadError }, thumbnailUrl] = await Promise.all([
+        uploadPromise,
+        thumbnailPromise
+      ]);
 
       if (uploadError) {
         throw new Error(`Upload failed: ${uploadError.message}`);
       }
 
       const publicUrl = getPublicUrl(filePath);
-      
-      // Generate thumbnail for videos or icon for music
-      let thumbnailUrl = null;
-      if (uploadType === 'movie') {
-        thumbnailUrl = await generateVideoThumbnail(file);
-      } else if (uploadType === 'music') {
-        thumbnailUrl = await generateMusicIcon();
-      }
-      
       return { url: publicUrl, filePath, thumbnailUrl };
     } catch (error: unknown) {
-      const errorMessage = handleError(error, 'Upload');
-      throw new Error(`Upload failed: ${errorMessage}`);
+      console.error('Upload process failed:', error);
+      throw error;
     }
   }, [uploadType, getPublicUrl, generateVideoThumbnail, generateMusicIcon]);
 
@@ -216,79 +245,85 @@ export default function Upload() {
 
     setUploads(prev => [...prev, ...newUploads]);
 
-    // Process files sequentially to avoid conflicts
-    for (let i = 0; i < acceptedFiles.length; i++) {
-      const file = acceptedFiles[i];
+    // Process files in parallel for better speed
+    const uploadPromises = acceptedFiles.map(async (file) => {
       try {
         // Validate file
         const validationError = validateFile(file, uploadType);
         if (validationError) {
-          setUploads(prev => prev.map(upload => 
-            upload.file === file 
-              ? { ...upload, status: 'error', error: validationError }
-              : upload
+          setUploads(prev => prev.map(u =>
+            u.file === file
+              ? { ...u, status: 'error', error: validationError }
+              : u
           ));
-          continue;
+          return;
         }
 
-        // Upload file with retry logic
+        // Upload file with retry logic and progress tracking
         let retryCount = 0;
-        const maxRetries = 3;
-        let result: { url: string; filePath: string; thumbnailUrl: string | null } | null = null;
-        
-        while (retryCount < maxRetries) {
+        const maxRetries = 2;
+        let result = null;
+
+        while (retryCount <= maxRetries) {
           try {
-            result = await uploadFile(file);
+            result = await uploadFile(file, (progress) => {
+              setUploads(prev => prev.map(u =>
+                u.file === file ? { ...u, progress } : u
+              ));
+            });
             break;
           } catch (error: any) {
             retryCount++;
-            if (retryCount >= maxRetries) {
-              throw error;
-            }
-            // Wait before retry
+            if (retryCount > maxRetries) throw error;
             await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
           }
         }
-        
-        if (!result) {
-          throw new Error('Upload failed after all retries');
-        }
-        
-        setUploads(prev => prev.map(upload => 
-          upload.file === file 
-            ? { 
-                ...upload, 
-                progress: 100, 
-                status: 'completed',
-                url: result.url,
-                thumbnailUrl: result.thumbnailUrl
-              }
-            : upload
+
+        if (!result) throw new Error('Upload failed after retries');
+
+        setUploads(prev => prev.map(u =>
+          u.file === file
+            ? {
+              ...u,
+              progress: 100,
+              status: 'completed',
+              url: result.url,
+              thumbnailUrl: result.thumbnailUrl
+            }
+            : u
         ));
 
-        toast.success(`${file.name} uploaded successfully!`);
+        toast.success(`${file.name} ready!`);
       } catch (error: unknown) {
         const errorMessage = handleError(error, 'Upload');
-        setUploads(prev => prev.map(upload => 
-          upload.file === file 
-            ? { ...upload, status: 'error', error: errorMessage }
-            : upload
+        setUploads(prev => prev.map(u =>
+          u.file === file
+            ? { ...u, status: 'error', error: errorMessage }
+            : u
         ));
-        toast.error(`Failed to upload ${file.name}: ${errorMessage}`);
       }
-    }
+    });
 
+    await Promise.all(uploadPromises);
     setIsUploading(false);
   }, [uploadType, validateFile, uploadFile]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
-    accept: uploadType === 'movie' 
+    accept: uploadType === 'movie'
       ? { 'video/*': ['.mp4', '.mov', '.avi', '.wmv', '.webm'] }
       : { 'audio/*': ['.mp3', '.wav', '.flac', '.ogg'] },
     multiple: true,
     disabled: !uploadType || isUploading
   });
+
+  const resetUpload = useCallback(() => {
+    setUploadType(null);
+    setUploads([]);
+    setMovieMetadata({ title: '', description: '', genre: '', releaseDate: '', rating: 0 });
+    setMusicMetadata({ trackName: '', artist: '', album: '', genre: '', rating: 0 });
+    setIsUploading(false);
+  }, []);
 
   const saveMetadata = useCallback(async () => {
     if (!uploadType) return;
@@ -306,8 +341,10 @@ export default function Upload() {
       }
 
       const userId = session.user.id;
+      const userEmail = session.user.email || userId;
 
-      for (const upload of completedUploads) {
+      // Process all metadata saves in parallel
+      const savePromises = completedUploads.map(async (upload) => {
         try {
           if (uploadType === 'movie') {
             const { error: movieError } = await supabase
@@ -321,15 +358,10 @@ export default function Upload() {
                 release_year: movieMetadata.releaseDate ? new Date(movieMetadata.releaseDate).getFullYear() : null,
                 rating: movieMetadata.rating || null,
                 duration: 0,
-                uploaded_by: session.user.email || userId
+                uploaded_by: userEmail
               });
 
-            if (movieError) {
-              console.error('Failed to save movie metadata:', movieError);
-              toast.error(`Failed to save movie metadata: ${movieError.message}`);
-            } else {
-              console.log('Movie metadata saved successfully');
-            }
+            if (movieError) throw movieError;
           } else {
             const { error: musicError } = await supabase
               .from('music')
@@ -342,36 +374,24 @@ export default function Upload() {
                 genre: musicMetadata.genre.toLowerCase(),
                 rating: musicMetadata.rating || null,
                 duration: 0,
-                uploaded_by: session.user.email || userId
+                uploaded_by: userEmail
               });
 
-            if (musicError) {
-              console.error('Failed to save music metadata:', musicError);
-              toast.error(`Failed to save music metadata: ${musicError.message}`);
-            } else {
-              console.log('Music metadata saved successfully');
-            }
+            if (musicError) throw musicError;
           }
-        } catch (error: unknown) {
-          handleError(error, 'Saving metadata');
+        } catch (error: any) {
+          console.error(`Failed to save metadata for ${upload.file.name}:`, error);
+          throw error;
         }
-      }
+      });
 
-      toast.success('Files uploaded and metadata saved successfully!');
-      // Stay on upload dashboard instead of redirecting
+      await Promise.all(savePromises);
+      toast.success('All files processed and saved!');
       resetUpload();
     } catch (error: unknown) {
       handleError(error, 'Saving metadata');
     }
-  }, [uploadType, uploads, movieMetadata, musicMetadata, goToMovies, goToMusic]);
-
-  const resetUpload = useCallback(() => {
-    setUploadType(null);
-    setUploads([]);
-    setMovieMetadata({ title: '', description: '', genre: '', releaseDate: '', rating: 0 });
-    setMusicMetadata({ trackName: '', artist: '', album: '', genre: '', rating: 0 });
-    setIsUploading(false);
-  }, []);
+  }, [uploadType, uploads, movieMetadata, musicMetadata, resetUpload]);
 
   // Check if user can upload
   if (!canUpload || !isAdmin) {
@@ -470,11 +490,10 @@ export default function Upload() {
           {/* File Upload Area */}
           <div
             {...getRootProps()}
-            className={`border-2 border-dashed rounded-xl p-8 text-center transition-all duration-200 cursor-pointer ${
-              isDragActive
-                ? 'border-purple-400 bg-purple-900/20'
-                : 'border-slate-600 hover:border-purple-400 hover:bg-purple-900/10'
-            } ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`}
+            className={`border-2 border-dashed rounded-xl p-8 text-center transition-all duration-200 cursor-pointer ${isDragActive
+              ? 'border-purple-400 bg-purple-900/20'
+              : 'border-slate-600 hover:border-purple-400 hover:bg-purple-900/10'
+              } ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
             <input {...getInputProps()} />
             <UploadIcon className="w-12 h-12 text-slate-400 mx-auto mb-4" />
@@ -484,7 +503,7 @@ export default function Upload() {
                 : `Drag & drop ${uploadType} files here, or click to select`}
             </p>
             <p className="text-sm text-slate-500">
-              {uploadType === 'movie' 
+              {uploadType === 'movie'
                 ? 'Supports MP4, MOV, AVI, WMV, WebM (max 2GB)'
                 : 'Supports MP3, WAV, FLAC, OGG (max 2GB)'}
             </p>
@@ -497,17 +516,16 @@ export default function Upload() {
                 <div key={index} className="bg-slate-700/50 rounded-lg p-4">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-white font-medium">{upload.file.name}</span>
-                    <span className={`text-sm px-2 py-1 rounded ${
-                      upload.status === 'completed' ? 'bg-green-500/20 text-green-400' :
+                    <span className={`text-sm px-2 py-1 rounded ${upload.status === 'completed' ? 'bg-green-500/20 text-green-400' :
                       upload.status === 'error' ? 'bg-red-500/20 text-red-400' :
-                      'bg-blue-500/20 text-blue-400'
-                    }`}>
+                        'bg-blue-500/20 text-blue-400'
+                      }`}>
                       {upload.status}
                     </span>
                   </div>
                   {upload.status === 'uploading' && (
                     <div className="w-full bg-slate-600 rounded-full h-2">
-                      <div 
+                      <div
                         className="bg-purple-500 h-2 rounded-full transition-all duration-300"
                         style={{ width: `${upload.progress}%` }}
                       />
@@ -522,9 +540,14 @@ export default function Upload() {
           )}
 
           {/* Metadata Form */}
-          {uploads.some(upload => upload.status === 'completed') && (
+          {uploads.length > 0 && (
             <div className="mt-6">
-              <h3 className="text-lg font-semibold text-white mb-4">Metadata</h3>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-white">Metadata</h3>
+                <p className="text-xs text-slate-400">
+                  Tip: You can fill this out while your files upload.
+                </p>
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {uploadType === 'movie' ? (
                   <>
@@ -643,8 +666,8 @@ export default function Upload() {
               <div className="mt-6 flex space-x-4">
                 <button
                   onClick={saveMetadata}
-                  disabled={isUploading}
-                  className="bg-purple-600 hover:bg-purple-700 disabled:bg-slate-600 text-white px-6 py-2 rounded-lg transition-colors flex items-center"
+                  disabled={!uploads.some(u => u.status === 'completed')}
+                  className="bg-purple-600 hover:bg-purple-700 disabled:bg-slate-600 disabled:opacity-50 text-white px-6 py-2 rounded-lg transition-colors flex items-center"
                 >
                   <Check className="w-4 h-4 mr-2" />
                   Save Metadata
